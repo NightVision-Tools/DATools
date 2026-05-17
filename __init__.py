@@ -13,9 +13,11 @@ bl_info = {
 import bpy
 
 from .ui.main_panel import DAT_3DV_MainPanel, register_scene_properties
+from .operators.to_floor import DAT_OP_ToFloor
 
 # register classes
 classes = (
+    DAT_OP_ToFloor,
     DAT_3DV_MainPanel,
 )
 

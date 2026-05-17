@@ -31,6 +31,9 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
             return
         
         layout.label(text=f"Selected: {', '.join(sorted(menu))}")
+        
+        if "Tools" in menu:
+            layout.operator("dat.to_floor", text="To Floor")
 
 
 def register_scene_properties():
