@@ -2,7 +2,7 @@
 
 bl_info = {
     "name": "DATools",
-    "author": "DATools",
+    "author": "Tinazzi Patrick",
     "version": (1, 0, 0),
     "blender": (5, 1, 0),
     "location": "View3D > Sidebar > DAT",
