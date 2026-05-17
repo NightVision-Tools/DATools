@@ -3,3 +3,10 @@ ui/__pycache__/__init__.cpython-313.pyc
 ui/__pycache__/main_panel.cpython-313.pyc
 operators/__pycache__/__init__.cpython-313.pyc
 operators/__pycache__/to_floor.cpython-313.pyc
+__pycache__/dictionary.cpython-313.pyc
+languages/__pycache__/__init__.cpython-313.pyc
+languages/__pycache__/english.cpython-313.pyc
+languages/__pycache__/french.cpython-313.pyc
+languages/__pycache__/german.cpython-313.pyc
+languages/__pycache__/italian.cpython-313.pyc
+operators/__pycache__/select_language.cpython-313.pyc
