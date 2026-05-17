@@ -59,7 +59,12 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
         layout.label(text=dictionary.translate("selected_text", context).format(", ".join(sorted(menu))))
 
         if "Tools" in menu:
-            layout.operator("dat.to_floor", text=dictionary.translate("to_floor_label", context))
+            layout.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))            
+            layout.prop(scene, "dat_scale", expand=True)
+            layout.operator("dat.scale_it", text=dictionary.translate("scale_it_label", context))
+            layout.prop(scene, "dat_textureresolution")
+            layout.operator("dat.rez_it", text=dictionary.translate("rez_it_label", context))
+
 
 
 def register_scene_properties():
@@ -67,4 +72,29 @@ def register_scene_properties():
         name="UI Menu",
         items=ui_menu_options,
         options={"ENUM_FLAG"},
+    )
+    bpy.types.Scene.dat_textureresolution = bpy.props.IntProperty(
+        name=dictionary.translate("dat_textureresolution_label"),
+        description=dictionary.translate("dat_textureresolution_description"),
+        default=1024,
+        min=1,
+    )
+    bpy.types.Scene.dat_scale = bpy.props.EnumProperty(
+        name=dictionary.translate("scale_it_axis_label"),
+        description=dictionary.translate("scale_it_axis_description"),
+        items=[
+            ("X", "X", "Scale to the X", 0, 0),
+            ("Y", "Y", "Scale to the Y", 0, 1),
+            ("Z", "Z", "Scale to the Z", 0, 2),
+        ],
+        default="X",
+    )
+    bpy.types.Scene.dat_scalebuffer = bpy.props.FloatProperty(
+        name=dictionary.translate("dat_scalebuffer_label"),
+        default=0.0,
+        precision=6,
+    )
+    bpy.types.Scene.dat_activeobjectbuffer = bpy.props.PointerProperty(
+        name=dictionary.translate("dat_activeobjectbuffer_label"),
+        type=bpy.types.Object,
     )

@@ -2,7 +2,7 @@ import bpy
 
 from .languages import english, french, german, italian
 
-ADDON_MODULE = __package__
+ADDON_MODULE = __package__ or "DATools"
 
 LANGUAGE_MODULES = {
     "ENGLISH": english.strings,
