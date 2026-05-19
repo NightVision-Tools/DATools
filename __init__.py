@@ -40,6 +40,7 @@ from .operators.select_language import DAT_OP_SelectLanguage
 from .operators.floor_it import DAT_OP_FloorIt
 from .operators.rez_it import DAT_OP_RezIt
 from .operators.scale_it import DAT_OP_ScaleIt
+from .operators.mirror_it import DAT_OP_Mirrorit
 
 
 class DAToolsPreferences(bpy.types.AddonPreferences):
@@ -76,6 +77,7 @@ classes = (
     DAT_OP_FloorIt,
     DAT_OP_RezIt,
     DAT_OP_ScaleIt,
+    DAT_OP_Mirrorit,
     DAT_3DV_MainPanel,
 )
 
@@ -101,6 +103,7 @@ def unregister():
         "ui_menu",
         "dat_textureresolution",
         "dat_scale",
+        "dat_mirror",
         "dat_scalebuffer",
         "dat_activeobjectbuffer",
     ):

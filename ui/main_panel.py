@@ -62,6 +62,8 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
             layout.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))            
             layout.prop(scene, "dat_scale", expand=True)
             layout.operator("dat.scale_it", text=dictionary.translate("scale_it_label", context))
+            layout.prop(scene, "dat_mirror", expand=True)
+            layout.operator("dat.mirror_it", text=dictionary.translate("mirror_it_label", context))
             layout.prop(scene, "dat_textureresolution")
             layout.operator("dat.rez_it", text=dictionary.translate("rez_it_label", context))
 
@@ -86,6 +88,16 @@ def register_scene_properties():
             ("X", "X", "Scale to the X", 0, 0),
             ("Y", "Y", "Scale to the Y", 0, 1),
             ("Z", "Z", "Scale to the Z", 0, 2),
+        ],
+        default="X",
+    )
+    bpy.types.Scene.dat_mirror = bpy.props.EnumProperty(
+        name=dictionary.translate("mirror_it_axis_label"),
+        description=dictionary.translate("mirror_it_axis_description"),
+        items=[
+            ("X", "X", "Mirror over the X axis", 0, 0),
+            ("Y", "Y", "Mirror over the Y axis", 0, 1),
+            ("Z", "Z", "Mirror over the Z axis", 0, 2),
         ],
         default="X",
     )
