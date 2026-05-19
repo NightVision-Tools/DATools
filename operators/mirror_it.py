@@ -1,14 +1,33 @@
 import bpy
 
+from .. import dictionary
 
 class DAT_OP_Mirrorit(bpy.types.Operator):
     bl_idname = "dat.mirror_it"
     bl_label = "Mirror It!"
     bl_description = "Mirror selected objects based on the chosen axis"
     bl_options = {"REGISTER", "UNDO"}
+
+    mirror_axis: bpy.props.EnumProperty(
+        name=dictionary.translate("mirror_it_axis_label"),
+        description=dictionary.translate("mirror_it_axis_description"),
+        items=[
+            ("X", "X", "Mirror over the X axis", 0, 0),
+            ("Y", "Y", "Mirror over the Y axis", 0, 1),
+            ("Z", "Z", "Mirror over the Z axis", 0, 2),
+        ],
+        default="X",
+    )
     @classmethod
     def poll(cls, context):
         return any(obj.type == "MESH" for obj in context.selected_objects)
+
+    def invoke(self, context, event):
+        self.mirror_axis = getattr(context.scene, "dat_mirror", "X")
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "mirror_axis")
 
     def execute(self, context):
         mesh_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
@@ -28,7 +47,9 @@ class DAT_OP_Mirrorit(bpy.types.Operator):
         context.view_layer.objects.active = mesh_objects[0]
         context.tool_settings.transform_pivot_point = "INDIVIDUAL_ORIGINS"
 
-        axis = context.scene.dat_mirror
+        axis = getattr(self, "mirror_axis", None)
+        if not isinstance(axis, str) or axis not in ("X", "Y", "Z"):
+            axis = getattr(context.scene, "dat_mirror", "X")
         bpy.ops.transform.mirror(
             constraint_axis=(axis == "X", axis == "Y", axis == "Z")
         )
@@ -48,6 +69,7 @@ class DAT_OP_Mirrorit(bpy.types.Operator):
             obj.select_set(True)
         context.view_layer.objects.active = old_active
 
+        context.scene.dat_mirror = axis
         self.report({"INFO"}, "MIRROR IT! Completed")
         return {"FINISHED"}
     

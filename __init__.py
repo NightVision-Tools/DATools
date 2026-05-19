@@ -36,11 +36,12 @@ from .dictionary import (
     unregister_translations,
 )
 from .ui.main_panel import DAT_3DV_MainPanel, register_scene_properties
-from .operators.select_language import DAT_OP_SelectLanguage
+from .ui.select_language import DAT_OP_SelectLanguage
 from .operators.floor_it import DAT_OP_FloorIt
 from .operators.rez_it import DAT_OP_RezIt
 from .operators.scale_it import DAT_OP_ScaleIt
 from .operators.mirror_it import DAT_OP_Mirrorit
+from .operators.shrink_it import DAT_OP_ShrinkIt
 
 
 class DAToolsPreferences(bpy.types.AddonPreferences):
@@ -78,6 +79,7 @@ classes = (
     DAT_OP_RezIt,
     DAT_OP_ScaleIt,
     DAT_OP_Mirrorit,
+    DAT_OP_ShrinkIt,
     DAT_3DV_MainPanel,
 )
 
@@ -104,6 +106,10 @@ def unregister():
         "dat_textureresolution",
         "dat_scale",
         "dat_mirror",
+        "dat_shrinkpercentage",
+        "dat_shrink_mode",
+        "dat_shrink_apply_modifiers",
+        "dat_shrink_select_result",
         "dat_scalebuffer",
         "dat_activeobjectbuffer",
     ):

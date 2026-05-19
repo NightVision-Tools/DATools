@@ -1,17 +1,33 @@
 import bpy
 from math import ceil
 
+from .. import dictionary
 
 class DAT_OP_RezIt(bpy.types.Operator):
     bl_idname = "dat.rez_it"
     bl_label = "Texture Resize"
     bl_description = "Resize textures of selected objects to the desired resolution"
     bl_options = {"REGISTER", "UNDO"}
+
+    texture_resolution: bpy.props.IntProperty(
+        name=dictionary.translate("dat_textureresolution_label"),
+        description=dictionary.translate("dat_textureresolution_description"),
+        default=1024,
+        min=1,
+    )
     @classmethod
     def poll(cls, context):
         return any(obj.type == "MESH" for obj in context.selected_objects)
+
+    def invoke(self, context, event):
+        self.texture_resolution = int(getattr(context.scene, "dat_textureresolution", 1024))
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "texture_resolution")
+
     def execute(self, context):
-        resolution = int(context.scene.dat_textureresolution)
+        resolution = int(getattr(self, "texture_resolution", getattr(context.scene, "dat_textureresolution", 1024)))
         selected_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
         processed_materials = set()
         processed_textures = set()
@@ -91,5 +107,6 @@ class DAT_OP_RezIt(bpy.types.Operator):
         print(original_to_duplicate)
         print("Original Texture to Resized Texture:")
         print(original_to_resized)
+        context.scene.dat_textureresolution = int(resolution)
         self.report({"INFO"}, "Texture resize completed")
         return {"FINISHED"}

@@ -9,7 +9,7 @@ class DAT_OP_SelectLanguage(bpy.types.Operator):
     bl_description = "Change the active DATools language"
     bl_options = {"REGISTER"}
 
-    language = bpy.props.EnumProperty(
+    language: bpy.props.EnumProperty(
         name="Language",
         items=dictionary.get_language_items,
         default="ENGLISH",

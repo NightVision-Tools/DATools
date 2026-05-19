@@ -47,6 +47,7 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        layout.operator_context = 'EXEC_DEFAULT'
         scene = context.scene
         row = layout.row()
         row.prop(scene, "ui_menu", text=dictionary.translate("ui_menu_label", context))
@@ -62,6 +63,8 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
             layout.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))            
             layout.prop(scene, "dat_scale", expand=True)
             layout.operator("dat.scale_it", text=dictionary.translate("scale_it_label", context))
+            layout.prop(scene, "dat_shrinkpercentage")
+            layout.operator("dat.shrink_it", text=dictionary.translate("shrink_it_label", context))
             layout.prop(scene, "dat_mirror", expand=True)
             layout.operator("dat.mirror_it", text=dictionary.translate("mirror_it_label", context))
             layout.prop(scene, "dat_textureresolution")
@@ -100,6 +103,32 @@ def register_scene_properties():
             ("Z", "Z", "Mirror over the Z axis", 0, 2),
         ],
         default="X",
+    )
+    bpy.types.Scene.dat_shrinkpercentage = bpy.props.IntProperty(
+        name=dictionary.translate("shrink_it_percentage_label"),
+        description=dictionary.translate("shrink_it_percentage_description"),
+        default=50,
+        min=1,
+        max=100,
+    )
+    bpy.types.Scene.dat_shrink_mode = bpy.props.EnumProperty(
+        name=dictionary.translate("shrink_it_mode_label"),
+        description=dictionary.translate("shrink_it_mode_description"),
+        items=[
+            ("KEEP", dictionary.translate("shrink_it_mode_keep_label"), "Keep duplicates and leave originals"),
+            ("REPLACE", dictionary.translate("shrink_it_mode_replace_label"), "Replace originals with decimated duplicates"),
+        ],
+        default="KEEP",
+    )
+    bpy.types.Scene.dat_shrink_apply_modifiers = bpy.props.BoolProperty(
+        name=dictionary.translate("shrink_it_apply_modifiers_label"),
+        description=dictionary.translate("shrink_it_apply_modifiers_description"),
+        default=False,
+    )
+    bpy.types.Scene.dat_shrink_select_result = bpy.props.BoolProperty(
+        name=dictionary.translate("shrink_it_select_result_label"),
+        description=dictionary.translate("shrink_it_select_result_description"),
+        default=True,
     )
     bpy.types.Scene.dat_scalebuffer = bpy.props.FloatProperty(
         name=dictionary.translate("dat_scalebuffer_label"),
