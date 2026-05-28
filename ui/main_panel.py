@@ -226,16 +226,35 @@ class DAT_OT_MainPanelPin(bpy.types.Operator):
 def _draw_tools_panel(layout, context):
     layout.operator_context = 'EXEC_DEFAULT'
     scene = context.scene
-    layout.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))
-    layout.prop(scene, "dat_scale", expand=True)
-    layout.operator("dat.scale_it", text=dictionary.translate("scale_it_label", context))
-    layout.prop(scene, "dat_shrinkpercentage")
-    layout.operator("dat.shrink_it", text=dictionary.translate("shrink_it_label", context))
-    layout.prop(scene, "dat_mirror", expand=True)
-    layout.operator("dat.mirror_it", text=dictionary.translate("mirror_it_label", context))
-    layout.prop(scene, "dat_textureresolution")
-    layout.operator("dat.rez_it", text=dictionary.translate("rez_it_label", context))
+    # --- Scale It ---
+    box = layout.box()
+    box.label(icon="MOD_SCATTER_ON_SURFACE", text="Scale Axis")
+    box.prop(scene, "dat_scale", expand=True)
+    box.operator("dat.scale_it", text=dictionary.translate("scale_it_label", context))    
 
+    # --- Mirror It ---
+    box = layout.box()
+    box.label(text="Mirror Axis", icon="MOD_MIRROR")
+    box.prop(scene, "dat_mirror", expand=True)
+    box.operator("dat.mirror_it", text=dictionary.translate("mirror_it_label", context))
+
+    # --- Shrink It ---
+    box = layout.box()
+    box.label(icon="MOD_DECIM")
+    box.prop(scene, "dat_shrinkpercentage")
+    box.operator("dat.shrink_it", text=dictionary.translate("shrink_it_label", context))
+    
+    # --- Rez It ---
+    box = layout.box()
+    box.label(icon="NODE_TEXTURE")
+    box.prop(scene, "dat_textureresolution")
+    box.operator("dat.rez_it", text=dictionary.translate("rez_it_label", context))
+        
+    # --- Floor It ---
+    box = layout.box()
+    box.label(icon="CON_FLOOR")
+    box.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))
+    
 
 def _draw_settings_panel(layout, context):
     state = context.scene.dat_panel_state
