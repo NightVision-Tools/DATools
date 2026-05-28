@@ -14,7 +14,7 @@ class DAT_OP_RezIt(bpy.types.Operator):
         description=dictionary.translate("dat_textureresolution_description"),
         default=1024,
         min=1,
-    )
+    ) # pyright: ignore[reportInvalidTypeForm]
     @classmethod
     def poll(cls, context):
         return any(obj.type == "MESH" for obj in context.selected_objects)

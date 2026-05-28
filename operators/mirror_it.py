@@ -1,5 +1,6 @@
 import bpy
 
+
 from .. import dictionary
 
 class DAT_OP_Mirrorit(bpy.types.Operator):

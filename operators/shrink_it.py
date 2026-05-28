@@ -1,7 +1,7 @@
 import bpy
 
-from .. import dictionary
 
+from .. import dictionary
 
 class DAT_OP_ShrinkIt(bpy.types.Operator):
     bl_idname = "dat.shrink_it"
