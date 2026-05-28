@@ -3,7 +3,7 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick",
-    "version": (1, 6, 7),
+    "version": (1, 7, 0),
     "blender": (5, 1, 0),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
@@ -42,7 +42,9 @@ from .ui.main_panel import (
     DAT_OT_MainPanelPin,
     DAT_OT_MainPanelPreviewHello,
     DAT_OT_MainPanelSelect,
+    register_custom_icons,
     register_scene_properties,
+    unregister_custom_icons,
 )
 from .ui.select_language import DAT_OP_SelectLanguage
 from .operators.floor_it import DAT_OP_FloorIt
@@ -100,6 +102,8 @@ classes = (
 
 
 def register():
+    register_custom_icons()
+
     for cls in classes:
         bpy.utils.register_class(cls)
 
@@ -140,4 +144,6 @@ def unregister():
             bpy.utils.unregister_class(cls)
         except Exception:
             pass
+
+    unregister_custom_icons()
 

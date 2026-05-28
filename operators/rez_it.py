@@ -5,7 +5,7 @@ from .. import dictionary
 
 class DAT_OP_RezIt(bpy.types.Operator):
     bl_idname = "dat.rez_it"
-    bl_label = "Texture Resize"
+    bl_label = "Rez It!"
     bl_description = "Resize textures of selected objects to the desired resolution"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -33,6 +33,13 @@ class DAT_OP_RezIt(bpy.types.Operator):
         processed_textures = set()
         original_to_duplicate = {}
         original_to_resized = {}
+        def material_has_images(material):
+            if material is None or not material.use_nodes or not material.node_tree:
+                return False
+            return any(
+                node.type == "TEX_IMAGE" and node.image is not None
+                for node in material.node_tree.nodes
+            )
         def get_existing_resize_material(original_material_name, resolution):
             prefix = f"Resize_{resolution}_"
             for material in bpy.data.materials:
@@ -49,6 +56,8 @@ class DAT_OP_RezIt(bpy.types.Operator):
             for slot in obj.material_slots:
                 original_material = slot.material
                 if original_material is None:
+                    continue
+                if not material_has_images(original_material):
                     continue
                 original_material_name = original_material.name
                 new_material = get_existing_resize_material(original_material_name, resolution)

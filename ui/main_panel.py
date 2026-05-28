@@ -1,13 +1,17 @@
 import bpy
 import json
+import os
 from collections import namedtuple
 from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProperty
 
 from .. import dictionary
 
+DAT_LOGO_ICON = "DAT_Logo"
+_preview_collections = {}
+
 # for info -> (identifier, label_key, description_key, icon)
 PANEL_ITEMS = (
-    ("BLENDER", "menu_blender", "Blender tools", "BLENDER"),
+    ("BLENDER", "menu_blender", "Blender tools", DAT_LOGO_ICON),
     ("TOOLS", "menu_tools", "General operators", "TOOL_SETTINGS"),
     ("TEXTURE", "menu_texture", "Texture tools", "TEXTURE"),
     ("LIGHT", "menu_light", "Lighting tools", "OUTLINER_OB_LIGHT"),
@@ -17,6 +21,99 @@ PANEL_ITEMS = (
 PANEL_IDS = [item[0] for item in PANEL_ITEMS]
 DEFAULT_PANEL_ID = "TOOLS"
 PanelState = namedtuple("PanelState", "identifier label icon selected expanded pinned index")
+
+
+def register_custom_icons():
+    import bpy.utils.previews
+
+    unregister_custom_icons()
+
+    previews = bpy.utils.previews.new()
+    icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "DAT_Logo.png")
+    if os.path.exists(icon_path):
+        previews.load(DAT_LOGO_ICON, icon_path, "IMAGE")
+    _preview_collections["datools"] = previews
+
+
+def unregister_custom_icons():
+    import bpy.utils.previews
+
+    for previews in _preview_collections.values():
+        bpy.utils.previews.remove(previews)
+    _preview_collections.clear()
+
+
+def _get_icon_value(icon):
+    previews = _preview_collections.get("datools")
+    if previews is None or icon not in previews:
+        return 0
+    return previews[icon].icon_id
+
+
+def _operator_with_panel_icon(layout, operator_id, panel, **kwargs):
+    icon_value = _get_icon_value(panel.icon)
+    if icon_value:
+        kwargs["icon_value"] = icon_value
+    else:
+        kwargs["icon"] = "BLENDER" if panel.icon == DAT_LOGO_ICON else panel.icon
+    return layout.operator(operator_id, **kwargs)
+
+
+def _label_with_panel_icon(layout, text, icon):
+    icon_value = _get_icon_value(icon)
+    if icon_value:
+        layout.label(text=text, icon_value=icon_value)
+    else:
+        layout.label(text=text, icon="BLENDER" if icon == DAT_LOGO_ICON else icon)
+
+
+def _draw_section_header(layout, text="", icon="NONE"):
+    row = layout.row(align=True)
+    row.label(text=text, icon=icon)
+    return row
+
+
+def _draw_axis_tabs(layout, data, prop_name):
+    row = layout.row(align=True)
+    row.prop(data, prop_name, expand=True)
+    return row
+
+
+def _draw_action_button(layout, operator_id, text, icon="NONE", *, highlight=True, operator_context=None):
+    row = layout.row(align=True)
+    row.scale_y = 1.12
+    if operator_context is not None:
+        row.operator_context = operator_context
+    return row.operator(operator_id, text=text, icon=icon, depress=highlight)
+
+
+def _draw_axis_action_section(
+    layout,
+    data,
+    prop_name,
+    header_text,
+    header_icon,
+    operator_id,
+    operator_text,
+    operator_icon,
+):
+    box = layout.box()
+    _draw_section_header(box, text=header_text, icon=header_icon)
+    controls = box.column(align=True)
+    _draw_axis_tabs(controls, data, prop_name)
+    _draw_action_button(controls, operator_id, operator_text, icon=operator_icon)
+    return box
+
+
+def _draw_vector_props(layout, label, data, prop_names, icon="NONE"):
+    box = layout.box()
+    header = box.row(align=True)
+    header.label(text=label, icon=icon)
+
+    props = box.row(align=True)
+    for axis, prop_name in zip(("X", "Y", "Z"), prop_names):
+        props.prop(data, prop_name, text=axis)
+    return box
 
 
 def _json_to_dict(value):
@@ -97,7 +194,7 @@ def _draw_tab_content_split(layout, state):
     if state.vertical_tabs:
         root = layout.row(align=True)
         tab_column = root.column(align=False)
-        tab_column.ui_units_x = max(1.6, 2.1 * state.menu_button_scale)
+        tab_column.ui_units_x = max(1.6, 2.1 * state.menu_button_scale * state.menu_icon_scale)
         return tab_column, root.column(align=True)
 
     root = layout.column(align=False)
@@ -186,6 +283,15 @@ class DAT_MainPanelState(bpy.types.PropertyGroup):
     menu_button_scale: FloatProperty(
         name="Menu Button Size",
         description="Scale the main panel selector buttons",
+        default=1.0,
+        min=0.7,
+        max=2.0,
+        soft_min=0.8,
+        soft_max=1.6,
+    )
+    menu_icon_scale: FloatProperty(
+        name="Menu Icon Size",
+        description="Scale the main menu selector icons",
         default=1.0,
         min=0.7,
         max=2.0,
@@ -325,27 +431,50 @@ def _draw_tools_panel(layout, context):
     layout.scale_y = state.submenu_button_scale * state.ui_text_scale
     scene = context.scene
     # --- Scale It ---
-    box = layout.box()
-    box.label(icon="MOD_SCATTER_ON_SURFACE", text="Scale Axis")
-    box.prop(scene, "dat_scale", expand=True)
-    box.operator("dat.scale_it", text=dictionary.translate("scale_it_label", context))    
+    _draw_axis_action_section(
+        layout,
+        scene,
+        "dat_scale",
+        "Scale Axis",
+        "MOD_SCATTER_ON_SURFACE",
+        "dat.scale_it",
+        dictionary.translate("scale_it_label", context),
+        "MOD_SCATTER_ON_SURFACE",
+    )
 
     # --- Mirror It ---
-    box = layout.box()
-    box.label(icon="MOD_MIRROR", text="Mirror Axis")
-    box.prop(scene, "dat_mirror", expand=True)
-    box.operator("dat.mirror_it", text=dictionary.translate("mirror_it_label", context))
+    _draw_axis_action_section(
+        layout,
+        scene,
+        "dat_mirror",
+        "Mirror Axis",
+        "MOD_MIRROR",
+        "dat.mirror_it",
+        dictionary.translate("mirror_it_label", context),
+        "MOD_MIRROR",
+    )
 
     # --- Shrink It ---
     box = layout.box()
-    box.label(icon="MOD_DECIM")
-    box.prop(scene, "dat_shrinkpercentage")
-    box.operator("dat.shrink_it", text=dictionary.translate("shrink_it_label", context))
+    _draw_section_header(box, icon="MOD_DECIM")
+    controls = box.column(align=True)
+    controls.prop(scene, "dat_shrinkpercentage")
+    _draw_action_button(
+        controls,
+        "dat.shrink_it",
+        dictionary.translate("shrink_it_label", context),
+        icon="MOD_DECIM",
+    )
 
     # --- Floor It ---
     box = layout.box()
-    box.label(icon="CON_FLOOR")
-    box.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))
+    _draw_section_header(box, icon="CON_FLOOR")
+    _draw_action_button(
+        box,
+        "dat.floor_it",
+        dictionary.translate("floor_it_label", context),
+        icon="CON_FLOOR",
+    )
     
 
 def _draw_settings_panel(layout, context):
@@ -355,6 +484,7 @@ def _draw_settings_panel(layout, context):
     layout.prop(state, "show_tab_labels")
     layout.prop(state, "menu_area_width")
     layout.prop(state, "menu_button_scale")
+    layout.prop(state, "menu_icon_scale")
     layout.prop(state, "submenu_button_scale")
     layout.prop(state, "ui_text_scale")
     _draw_settings_preview(layout, context)
@@ -374,8 +504,8 @@ def _draw_settings_preview(layout, context):
     )
     for index, (icon, selected) in enumerate(preview_tabs):
         row = menu_col.row(align=True)
-        row.scale_x = state.menu_button_scale
-        row.scale_y = state.menu_button_scale * state.ui_text_scale
+        row.scale_x = state.menu_button_scale * state.menu_icon_scale
+        row.scale_y = state.menu_button_scale * state.menu_icon_scale * state.ui_text_scale
         row.alert = selected
         row.label(text="DAT" if state.show_tab_labels else "", icon=icon)
         if index < len(preview_tabs) - 1:
@@ -392,7 +522,7 @@ def _draw_settings_preview(layout, context):
     sample.label(text="Mapping Settings", icon="FORCE_TEXTURE")
     sample.label(text="Location X  0.000")
     sample.label(text="Scale X  1.000")
-    sample.operator("dat.main_panel_preview_hello", text="Dummy", icon="PLAY")
+    _draw_action_button(sample, "dat.main_panel_preview_hello", text="Dummy", icon="PLAY")
 
 def _draw_texture_panel(layout, context):
     state = context.scene.dat_panel_state
@@ -401,9 +531,17 @@ def _draw_texture_panel(layout, context):
 
     # --- Rez It ---
     box = layout.box()
-    box.label(icon="NODE_TEXTURE")
-    box.prop(scene, "dat_textureresolution")
-    box.operator("dat.rez_it", text=dictionary.translate("rez_it_label", context))
+    _draw_section_header(box, icon="NODE_TEXTURE")
+    controls = box.column(align=True)
+    controls.prop(scene, "dat_textureresolution")
+    rez_op = _draw_action_button(
+        controls,
+        "dat.rez_it",
+        dictionary.translate("rez_it_label", context),
+        icon="NODE_TEXTURE",
+        operator_context="EXEC_DEFAULT",
+    )
+    rez_op.texture_resolution = int(scene.dat_textureresolution)
 
     # --- Map It ---
     box = layout.box()
@@ -411,16 +549,43 @@ def _draw_texture_panel(layout, context):
     mapped_count = _get_selected_map_it_material_count(context)
     if mapped_count:
         box.label(text=dictionary.translate("map_it_live_label", context).format(mapped_count), icon="LINKED")
-    box.prop(scene, "dat_location_x")
-    box.prop(scene, "dat_location_y")
-    box.prop(scene, "dat_location_z")
-    box.prop(scene, "dat_rotation_x")
-    box.prop(scene, "dat_rotation_y")
-    box.prop(scene, "dat_rotation_z")
-    box.prop(scene, "dat_scale_x")
-    box.prop(scene, "dat_scale_y")
-    box.prop(scene, "dat_scale_z")
-    box.operator("dat.map_it", text=dictionary.translate("map_it_label", context))
+    _draw_vector_props(
+        box,
+        "Location",
+        scene,
+        ("dat_location_x", "dat_location_y", "dat_location_z"),
+        icon="EMPTY_ARROWS",
+    )
+    _draw_vector_props(
+        box,
+        "Rotation",
+        scene,
+        ("dat_rotation_x", "dat_rotation_y", "dat_rotation_z"),
+        icon="DRIVER_ROTATIONAL_DIFFERENCE",
+    )
+    _draw_vector_props(
+        box,
+        "Scale",
+        scene,
+        ("dat_scale_x", "dat_scale_y", "dat_scale_z"),
+        icon="FULLSCREEN_ENTER",
+    )
+    map_op = _draw_action_button(
+        box,
+        "dat.map_it",
+        dictionary.translate("map_it_label", context),
+        icon="FORCE_TEXTURE",
+        operator_context="EXEC_DEFAULT",
+    )
+    map_op.location_x = float(scene.dat_location_x)
+    map_op.location_y = float(scene.dat_location_y)
+    map_op.location_z = float(scene.dat_location_z)
+    map_op.rotation_x = float(scene.dat_rotation_x)
+    map_op.rotation_y = float(scene.dat_rotation_y)
+    map_op.rotation_z = float(scene.dat_rotation_z)
+    map_op.scale_x = float(scene.dat_scale_x)
+    map_op.scale_y = float(scene.dat_scale_y)
+    map_op.scale_z = float(scene.dat_scale_z)
 
 
 def _draw_light_panel(layout, context):
@@ -431,15 +596,35 @@ def _draw_light_panel(layout, context):
     box.label(text=dictionary.translate("light_add_label", context), icon="OUTLINER_OB_LIGHT")
 
     row = box.row(align=True)
-    op = row.operator("object.light_add", text=dictionary.translate("light_point_label", context), icon="LIGHT_POINT")
+    op = row.operator(
+        "object.light_add",
+        text=dictionary.translate("light_point_label", context),
+        icon="LIGHT_POINT",
+        depress=True,
+    )
     op.type = "POINT"
-    op = row.operator("object.light_add", text=dictionary.translate("light_sun_label", context), icon="LIGHT_SUN")
+    op = row.operator(
+        "object.light_add",
+        text=dictionary.translate("light_sun_label", context),
+        icon="LIGHT_SUN",
+        depress=True,
+    )
     op.type = "SUN"
 
     row = box.row(align=True)
-    op = row.operator("object.light_add", text=dictionary.translate("light_spot_label", context), icon="LIGHT_SPOT")
+    op = row.operator(
+        "object.light_add",
+        text=dictionary.translate("light_spot_label", context),
+        icon="LIGHT_SPOT",
+        depress=True,
+    )
     op.type = "SPOT"
-    op = row.operator("object.light_add", text=dictionary.translate("light_area_label", context), icon="LIGHT_AREA")
+    op = row.operator(
+        "object.light_add",
+        text=dictionary.translate("light_area_label", context),
+        icon="LIGHT_AREA",
+        depress=True,
+    )
     op.type = "AREA"
 
     active = context.object
@@ -474,7 +659,7 @@ def _draw_panel_content(layout, context, identifier):
     elif identifier == "SETTINGS":
         _draw_settings_panel(col, context)
     elif identifier == "BLENDER":
-        col.label(text=dictionary.translate("menu_blender", context), icon="BLENDER")
+        _label_with_panel_icon(col, dictionary.translate("menu_blender", context), DAT_LOGO_ICON)
     elif identifier == "IO":
         col.label(text=dictionary.translate("menu_io", context), icon="NETWORK_DRIVE")
     elif identifier == "TEXTURE":
@@ -533,13 +718,14 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
         for index, panel in enumerate(panels):
             row = tab_column.row(align=True)
             row.operator_context = 'INVOKE_DEFAULT'
-            row.scale_x = state.menu_button_scale
-            row.scale_y = state.menu_button_scale * state.ui_text_scale
+            row.scale_x = state.menu_button_scale * state.menu_icon_scale
+            row.scale_y = state.menu_button_scale * state.menu_icon_scale * state.ui_text_scale
             row.alert = panel.pinned
-            op = row.operator(
+            op = _operator_with_panel_icon(
+                row,
                 "dat.main_panel_select",
+                panel,
                 text=panel.label if state.show_tab_labels else "",
-                icon=panel.icon,
                 depress=panel.selected,
                 emboss=panel.selected,
             )

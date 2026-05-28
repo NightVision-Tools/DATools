@@ -1,10 +1,10 @@
 schema_version = "1.0.0"
 
 id = "DATools"
-version = "1.6.7"
+version = "1.7.0"
 name = "DATools"
 tagline = "A set of tools for the DungeonAlchemist™ import pipeline"
-maintainer = "Tinazzi Patrick,"
+maintainer = "Tinazzi Patrick, Dallasrt"
 # Supported types: "add-on", "theme"
 type = "add-on"
 
