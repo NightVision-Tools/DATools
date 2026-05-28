@@ -3,7 +3,7 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick",
-    "version": (1, 0, 0),
+    "version": (1, 6, 7),
     "blender": (5, 1, 0),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
@@ -40,6 +40,7 @@ from .ui.main_panel import (
     DAT_MainPanelState,
     DAT_OT_MainPanelExpand,
     DAT_OT_MainPanelPin,
+    DAT_OT_MainPanelPreviewHello,
     DAT_OT_MainPanelSelect,
     register_scene_properties,
 )
@@ -93,6 +94,7 @@ classes = (
     DAT_OT_MainPanelSelect,
     DAT_OT_MainPanelExpand,
     DAT_OT_MainPanelPin,
+    DAT_OT_MainPanelPreviewHello,
     DAT_3DV_MainPanel,
 )
 

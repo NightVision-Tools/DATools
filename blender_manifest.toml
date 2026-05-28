@@ -1,19 +1,19 @@
 schema_version = "1.0.0"
 
 id = "DATools"
-version = "1.0.0"
+version = "1.6.7"
 name = "DATools"
 tagline = "A set of tools for the DungeonAlchemist™ import pipeline"
-maintainer = "Tinazzi Patrick"
+maintainer = "Tinazzi Patrick,"
 # Supported types: "add-on", "theme"
 type = "add-on"
 
 # # Optional: link to documentation, support, source files, etc
-# website = "https://extensions.blender.org/add-ons/my-example-package/"
+website = "https://1nightvision1.github.io/DATools_Doc/"
 
 # # Optional: tag list defined by Blender and server, see:
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
-# tags = ["Animation", "Sequencer"]
+tags = ["3D View","Import-Export","Lighting","Material","Modeling","Mesh","Object","Scene","UV"]
 
 blender_version_min = "4.2.0"
 # # Optional: Blender version that the extension does not support, earlier versions are supported.
@@ -26,9 +26,9 @@ license = [
   "SPDX:GPL-3.0-or-later",
 ]
 # # Optional: required by some licenses.
-copyright = [
-  "2026 Tinazzi Patrick",
-]
+#copyright = [
+#  "2026 Tinazzi Patrick",
+#]
 
 # # Optional: list of supported platforms. If omitted, the extension will be available in all operating systems.
 # platforms = ["windows-x64", "macos-arm64", "linux-x64"]
@@ -57,7 +57,7 @@ copyright = [
 #
 # [permissions]
 # network = "Need to sync motion-capture data to server"
-# files = "Import/export FBX from/to disk"
+files = "Import/export from/to disk"
 # clipboard = "Copy and paste bone transforms"
 
 # # Optional: advanced build settings.

@@ -5,10 +5,12 @@ from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProper
 
 from .. import dictionary
 
-
+# for info -> (identifier, label_key, description_key, icon)
 PANEL_ITEMS = (
     ("BLENDER", "menu_blender", "Blender tools", "BLENDER"),
-    ("TOOLS", "menu_tools", "DATools operators", "TOOL_SETTINGS"),
+    ("TOOLS", "menu_tools", "General operators", "TOOL_SETTINGS"),
+    ("TEXTURE", "menu_texture", "Texture tools", "TEXTURE"),
+    ("LIGHT", "menu_light", "Lighting tools", "OUTLINER_OB_LIGHT"),
     ("IO", "menu_io", "Import and export", "NETWORK_DRIVE"),
     ("SETTINGS", "menu_settings", "DATools settings", "SETTINGS"),
 )
@@ -87,6 +89,21 @@ def _get_selected_map_it_material_count(context):
         return 0
 
 
+def _draw_tab_content_split(layout, state):
+    if state.vertical_tabs and state.show_tab_labels:
+        root = layout.split(factor=state.menu_area_width, align=True)
+        return root.column(align=False), root.column(align=True)
+
+    if state.vertical_tabs:
+        root = layout.row(align=True)
+        tab_column = root.column(align=False)
+        tab_column.ui_units_x = max(1.6, 2.1 * state.menu_button_scale)
+        return tab_column, root.column(align=True)
+
+    root = layout.column(align=False)
+    return root.row(align=False), root.column(align=True)
+
+
 def ui_menu_options(self, context):
     enum_items = [
         (
@@ -104,18 +121,32 @@ def ui_menu_options(self, context):
             2,
         ),
         (
+            "Texture",
+            dictionary.translate("menu_texture", context),
+            dictionary.translate("menu_texture", context),
+            "TEXTURE",
+            4,
+        ),
+        (
+            "Light",
+            dictionary.translate("menu_light", context),
+            dictionary.translate("menu_light", context),
+            "OUTLINER_OB_LIGHT",
+            5,
+        ),
+        (
             "I/O",
             dictionary.translate("menu_io", context),
             dictionary.translate("menu_io", context),
             "NETWORK_DRIVE",
-            4,
+            8,
         ),
         (
             "Settings",
             dictionary.translate("menu_settings", context),
             dictionary.translate("menu_settings", context),
             "SETTINGS",
-            8,
+            12,
         ),
     ]
     return enum_items
@@ -161,6 +192,16 @@ class DAT_MainPanelState(bpy.types.PropertyGroup):
         soft_min=0.8,
         soft_max=1.6,
     )
+    menu_area_width: FloatProperty(
+        name="Menu Area Width (Show Tab Labels)",
+        description="Portion of the panel width used by the menu selector when tabs are vertical",
+        default=0.2,
+        min=0.1,
+        max=0.6,
+        soft_min=0.15,
+        soft_max=0.45,
+        subtype="FACTOR",
+    )
     submenu_button_scale: FloatProperty(
         name="Submenu Button Size",
         description="Scale the expandable submenu header buttons",
@@ -169,6 +210,15 @@ class DAT_MainPanelState(bpy.types.PropertyGroup):
         max=2.0,
         soft_min=0.8,
         soft_max=1.6,
+    )
+    ui_text_scale: FloatProperty(
+        name="Text / Row Size",
+        description="Scale text-bearing rows. Blender panels do not expose independent font size.",
+        default=1.0,
+        min=0.8,
+        max=1.6,
+        soft_min=0.9,
+        soft_max=1.3,
     )
 
 
@@ -259,9 +309,20 @@ class DAT_OT_MainPanelPin(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class DAT_OT_MainPanelPreviewHello(bpy.types.Operator):
+    bl_idname = "dat.main_panel_preview_hello"
+    bl_label = "Dummy"
+    bl_description = "Preview dummy action"
+
+    def execute(self, context):
+        self.report({"INFO"}, "Hello There!")
+        return {"FINISHED"}
+
+
 def _draw_tools_panel(layout, context):
     layout.operator_context = 'EXEC_DEFAULT'
-    layout.scale_y = context.scene.dat_panel_state.submenu_button_scale
+    state = context.scene.dat_panel_state
+    layout.scale_y = state.submenu_button_scale * state.ui_text_scale
     scene = context.scene
     # --- Scale It ---
     box = layout.box()
@@ -280,7 +341,64 @@ def _draw_tools_panel(layout, context):
     box.label(icon="MOD_DECIM")
     box.prop(scene, "dat_shrinkpercentage")
     box.operator("dat.shrink_it", text=dictionary.translate("shrink_it_label", context))
+
+    # --- Floor It ---
+    box = layout.box()
+    box.label(icon="CON_FLOOR")
+    box.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))
     
+
+def _draw_settings_panel(layout, context):
+    state = context.scene.dat_panel_state
+    layout.prop(state, "vertical_tabs")
+    layout.prop(state, "shift_multiselect")
+    layout.prop(state, "show_tab_labels")
+    layout.prop(state, "menu_area_width")
+    layout.prop(state, "menu_button_scale")
+    layout.prop(state, "submenu_button_scale")
+    layout.prop(state, "ui_text_scale")
+    _draw_settings_preview(layout, context)
+
+
+def _draw_settings_preview(layout, context):
+    state = context.scene.dat_panel_state
+    box = layout.box()
+    box.label(text="Preview", icon="HIDE_OFF")
+
+    menu_col, content_col = _draw_tab_content_split(box, state)
+
+    preview_tabs = (
+        ("TOOL_SETTINGS", True),
+        ("NETWORK_DRIVE", False),
+        ("SETTINGS", False),
+    )
+    for index, (icon, selected) in enumerate(preview_tabs):
+        row = menu_col.row(align=True)
+        row.scale_x = state.menu_button_scale
+        row.scale_y = state.menu_button_scale * state.ui_text_scale
+        row.alert = selected
+        row.label(text="DAT" if state.show_tab_labels else "", icon=icon)
+        if index < len(preview_tabs) - 1:
+            menu_col.separator()
+
+    header = content_col.row(align=True)
+    header.scale_y = state.submenu_button_scale * state.ui_text_scale
+    header.label(text="Tools", icon="TRIA_DOWN")
+    header.separator()
+    header.label(text="", icon="UNPINNED")
+
+    sample = content_col.box()
+    sample.scale_y = state.submenu_button_scale * state.ui_text_scale
+    sample.label(text="Mapping Settings", icon="FORCE_TEXTURE")
+    sample.label(text="Location X  0.000")
+    sample.label(text="Scale X  1.000")
+    sample.operator("dat.main_panel_preview_hello", text="Dummy", icon="PLAY")
+
+def _draw_texture_panel(layout, context):
+    state = context.scene.dat_panel_state
+    layout.scale_y = state.submenu_button_scale * state.ui_text_scale
+    scene = context.scene
+
     # --- Rez It ---
     box = layout.box()
     box.label(icon="NODE_TEXTURE")
@@ -303,20 +421,49 @@ def _draw_tools_panel(layout, context):
     box.prop(scene, "dat_scale_y")
     box.prop(scene, "dat_scale_z")
     box.operator("dat.map_it", text=dictionary.translate("map_it_label", context))
-        
-    # --- Floor It ---
-    box = layout.box()
-    box.label(icon="CON_FLOOR")
-    box.operator("dat.floor_it", text=dictionary.translate("floor_it_label", context))
-    
 
-def _draw_settings_panel(layout, context):
+
+def _draw_light_panel(layout, context):
     state = context.scene.dat_panel_state
-    layout.prop(state, "vertical_tabs")
-    layout.prop(state, "shift_multiselect")
-    layout.prop(state, "show_tab_labels")
-    layout.prop(state, "menu_button_scale")
-    layout.prop(state, "submenu_button_scale")
+    layout.scale_y = state.submenu_button_scale * state.ui_text_scale
+
+    box = layout.box()
+    box.label(text=dictionary.translate("light_add_label", context), icon="OUTLINER_OB_LIGHT")
+
+    row = box.row(align=True)
+    op = row.operator("object.light_add", text=dictionary.translate("light_point_label", context), icon="LIGHT_POINT")
+    op.type = "POINT"
+    op = row.operator("object.light_add", text=dictionary.translate("light_sun_label", context), icon="LIGHT_SUN")
+    op.type = "SUN"
+
+    row = box.row(align=True)
+    op = row.operator("object.light_add", text=dictionary.translate("light_spot_label", context), icon="LIGHT_SPOT")
+    op.type = "SPOT"
+    op = row.operator("object.light_add", text=dictionary.translate("light_area_label", context), icon="LIGHT_AREA")
+    op.type = "AREA"
+
+    active = context.object
+    box = layout.box()
+    if active is None or active.type != "LIGHT":
+        box.label(text=dictionary.translate("light_no_active_label", context), icon="INFO")
+        return
+
+    light = active.data
+    box.label(text=dictionary.translate("light_selected_label", context), icon="OUTLINER_OB_LIGHT")
+    box.prop(light, "type")
+    box.prop(light, "color")
+    box.prop(light, "energy")
+
+    if hasattr(light, "shadow_soft_size"):
+        box.prop(light, "shadow_soft_size")
+    if hasattr(light, "angle"):
+        box.prop(light, "angle")
+    if hasattr(light, "size"):
+        box.prop(light, "size")
+    if hasattr(light, "spot_size"):
+        box.prop(light, "spot_size")
+    if hasattr(light, "spot_blend"):
+        box.prop(light, "spot_blend")
 
 
 def _draw_panel_content(layout, context, identifier):
@@ -330,6 +477,10 @@ def _draw_panel_content(layout, context, identifier):
         col.label(text=dictionary.translate("menu_blender", context), icon="BLENDER")
     elif identifier == "IO":
         col.label(text=dictionary.translate("menu_io", context), icon="NETWORK_DRIVE")
+    elif identifier == "TEXTURE":
+        _draw_texture_panel(col, context)
+    elif identifier == "LIGHT":
+        _draw_light_panel(col, context)
 
 
 class DAT_3DV_MainPanel(bpy.types.Panel):
@@ -375,9 +526,7 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
             for index, (identifier, label_key, _description, icon) in enumerate(PANEL_ITEMS)
         ]
 
-        root = layout.row(align=False) if state.vertical_tabs else layout.column(align=False)
-        tab_column = root.column(align=False) if state.vertical_tabs else root.row(align=False)
-        content_column = root.column(align=True)
+        tab_column, content_column = _draw_tab_content_split(layout, state)
         tab_column.operator_context = 'INVOKE_DEFAULT'
         content_column.operator_context = 'EXEC_DEFAULT'
 
@@ -385,7 +534,7 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
             row = tab_column.row(align=True)
             row.operator_context = 'INVOKE_DEFAULT'
             row.scale_x = state.menu_button_scale
-            row.scale_y = state.menu_button_scale
+            row.scale_y = state.menu_button_scale * state.ui_text_scale
             row.alert = panel.pinned
             op = row.operator(
                 "dat.main_panel_select",
@@ -404,7 +553,7 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
 
             box = content_column.box()
             header = box.row(align=True)
-            header.scale_y = state.submenu_button_scale
+            header.scale_y = state.submenu_button_scale * state.ui_text_scale
 
             op = header.operator(
                 "dat.main_panel_expand",
