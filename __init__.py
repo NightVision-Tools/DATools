@@ -35,7 +35,14 @@ from .dictionary import (
     translate,
     unregister_translations,
 )
-from .ui.main_panel import DAT_3DV_MainPanel, register_scene_properties
+from .ui.main_panel import (
+    DAT_3DV_MainPanel,
+    DAT_MainPanelState,
+    DAT_OT_MainPanelExpand,
+    DAT_OT_MainPanelPin,
+    DAT_OT_MainPanelSelect,
+    register_scene_properties,
+)
 from .ui.select_language import DAT_OP_SelectLanguage
 from .operators.floor_it import DAT_OP_FloorIt
 from .operators.rez_it import DAT_OP_RezIt
@@ -80,6 +87,10 @@ classes = (
     DAT_OP_ScaleIt,
     DAT_OP_Mirrorit,
     DAT_OP_ShrinkIt,
+    DAT_MainPanelState,
+    DAT_OT_MainPanelSelect,
+    DAT_OT_MainPanelExpand,
+    DAT_OT_MainPanelPin,
     DAT_3DV_MainPanel,
 )
 
@@ -95,13 +106,8 @@ def register():
 def unregister():
     unregister_translations()
 
-    for cls in reversed(classes):
-        try:
-            bpy.utils.unregister_class(cls)
-        except Exception:
-            pass
-
     for prop in (
+        "dat_panel_state",
         "ui_menu",
         "dat_textureresolution",
         "dat_scale",
@@ -115,4 +121,10 @@ def unregister():
     ):
         if hasattr(bpy.types.Scene, prop):
             delattr(bpy.types.Scene, prop)
+
+    for cls in reversed(classes):
+        try:
+            bpy.utils.unregister_class(cls)
+        except Exception:
+            pass
 
