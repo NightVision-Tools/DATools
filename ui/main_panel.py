@@ -69,6 +69,24 @@ def _set_active(state, active):
     state.active_panels = _list_to_json(ordered)
 
 
+def _update_map_it_from_ui(self, context):
+    try:
+        from ..operators.map_it import apply_scene_mapping_to_selected
+
+        apply_scene_mapping_to_selected(context)
+    except Exception:
+        pass
+
+
+def _get_selected_map_it_material_count(context):
+    try:
+        from ..operators.map_it import selected_map_it_materials
+
+        return len(selected_map_it_materials(context))
+    except Exception:
+        return 0
+
+
 def ui_menu_options(self, context):
     enum_items = [
         (
@@ -253,7 +271,7 @@ def _draw_tools_panel(layout, context):
 
     # --- Mirror It ---
     box = layout.box()
-    box.label(text="Mirror Axis", icon="MOD_MIRROR")
+    box.label(icon="MOD_MIRROR", text="Mirror Axis")
     box.prop(scene, "dat_mirror", expand=True)
     box.operator("dat.mirror_it", text=dictionary.translate("mirror_it_label", context))
 
@@ -268,6 +286,23 @@ def _draw_tools_panel(layout, context):
     box.label(icon="NODE_TEXTURE")
     box.prop(scene, "dat_textureresolution")
     box.operator("dat.rez_it", text=dictionary.translate("rez_it_label", context))
+
+    # --- Map It ---
+    box = layout.box()
+    box.label(icon="FORCE_TEXTURE", text="Mapping Settings")
+    mapped_count = _get_selected_map_it_material_count(context)
+    if mapped_count:
+        box.label(text=dictionary.translate("map_it_live_label", context).format(mapped_count), icon="LINKED")
+    box.prop(scene, "dat_location_x")
+    box.prop(scene, "dat_location_y")
+    box.prop(scene, "dat_location_z")
+    box.prop(scene, "dat_rotation_x")
+    box.prop(scene, "dat_rotation_y")
+    box.prop(scene, "dat_rotation_z")
+    box.prop(scene, "dat_scale_x")
+    box.prop(scene, "dat_scale_y")
+    box.prop(scene, "dat_scale_z")
+    box.operator("dat.map_it", text=dictionary.translate("map_it_label", context))
         
     # --- Floor It ---
     box = layout.box()
@@ -453,6 +488,63 @@ def register_scene_properties():
         name=dictionary.translate("shrink_it_select_result_label"),
         description=dictionary.translate("shrink_it_select_result_description"),
         default=True,
+    )
+    bpy.types.Scene.dat_location_x = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_location_x_label"),
+        description=dictionary.translate("map_it_location_description"),
+        default=0.0,
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_location_y = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_location_y_label"),
+        description=dictionary.translate("map_it_location_description"),
+        default=0.0,
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_location_z = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_location_z_label"),
+        description=dictionary.translate("map_it_location_description"),
+        default=0.0,
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_rotation_x = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_rotation_x_label"),
+        description=dictionary.translate("map_it_rotation_description"),
+        default=0.0,
+        subtype="ANGLE",
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_rotation_y = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_rotation_y_label"),
+        description=dictionary.translate("map_it_rotation_description"),
+        default=0.0,
+        subtype="ANGLE",
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_rotation_z = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_rotation_z_label"),
+        description=dictionary.translate("map_it_rotation_description"),
+        default=0.0,
+        subtype="ANGLE",
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_scale_x = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_scale_x_label"),
+        description=dictionary.translate("map_it_scale_description"),
+        default=1.0,
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_scale_y = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_scale_y_label"),
+        description=dictionary.translate("map_it_scale_description"),
+        default=1.0,
+        update=_update_map_it_from_ui,
+    )
+    bpy.types.Scene.dat_scale_z = bpy.props.FloatProperty(
+        name=dictionary.translate("map_it_scale_z_label"),
+        description=dictionary.translate("map_it_scale_description"),
+        default=1.0,
+        update=_update_map_it_from_ui,
     )
     bpy.types.Scene.dat_scalebuffer = bpy.props.FloatProperty(
         name=dictionary.translate("dat_scalebuffer_label"),

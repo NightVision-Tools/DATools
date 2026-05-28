@@ -49,6 +49,7 @@ from .operators.rez_it import DAT_OP_RezIt
 from .operators.scale_it import DAT_OP_ScaleIt
 from .operators.mirror_it import DAT_OP_Mirrorit
 from .operators.shrink_it import DAT_OP_ShrinkIt
+from .operators.map_it import DAT_OP_MapIt
 
 
 class DAToolsPreferences(bpy.types.AddonPreferences):
@@ -87,6 +88,7 @@ classes = (
     DAT_OP_ScaleIt,
     DAT_OP_Mirrorit,
     DAT_OP_ShrinkIt,
+    DAT_OP_MapIt,
     DAT_MainPanelState,
     DAT_OT_MainPanelSelect,
     DAT_OT_MainPanelExpand,
@@ -116,6 +118,15 @@ def unregister():
         "dat_shrink_mode",
         "dat_shrink_apply_modifiers",
         "dat_shrink_select_result",
+        "dat_location_x",
+        "dat_location_y",
+        "dat_location_z",
+        "dat_rotation_x",
+        "dat_rotation_y",
+        "dat_rotation_z",
+        "dat_scale_x",
+        "dat_scale_y",
+        "dat_scale_z",
         "dat_scalebuffer",
         "dat_activeobjectbuffer",
     ):
