@@ -1,7 +1,7 @@
 import bpy
 import json
 from collections import namedtuple
-from bpy.props import BoolProperty, PointerProperty, StringProperty
+from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProperty
 
 from .. import dictionary
 
@@ -134,6 +134,24 @@ class DAT_MainPanelState(bpy.types.PropertyGroup):
         description="Show text near the tab icons",
         default=False,
     )
+    menu_button_scale: FloatProperty(
+        name="Menu Button Size",
+        description="Scale the main panel selector buttons",
+        default=1.0,
+        min=0.7,
+        max=2.0,
+        soft_min=0.8,
+        soft_max=1.6,
+    )
+    submenu_button_scale: FloatProperty(
+        name="Submenu Button Size",
+        description="Scale the expandable submenu header buttons",
+        default=1.0,
+        min=0.7,
+        max=2.0,
+        soft_min=0.8,
+        soft_max=1.6,
+    )
 
 
 class DAT_OT_MainPanelSelect(bpy.types.Operator):
@@ -225,6 +243,7 @@ class DAT_OT_MainPanelPin(bpy.types.Operator):
 
 def _draw_tools_panel(layout, context):
     layout.operator_context = 'EXEC_DEFAULT'
+    layout.scale_y = context.scene.dat_panel_state.submenu_button_scale
     scene = context.scene
     # --- Scale It ---
     box = layout.box()
@@ -261,6 +280,8 @@ def _draw_settings_panel(layout, context):
     layout.prop(state, "vertical_tabs")
     layout.prop(state, "shift_multiselect")
     layout.prop(state, "show_tab_labels")
+    layout.prop(state, "menu_button_scale")
+    layout.prop(state, "submenu_button_scale")
 
 
 def _draw_panel_content(layout, context, identifier):
@@ -320,22 +341,27 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
         ]
 
         root = layout.row(align=False) if state.vertical_tabs else layout.column(align=False)
-        tab_column = root.column(align=True) if state.vertical_tabs else root.row(align=True)
+        tab_column = root.column(align=False) if state.vertical_tabs else root.row(align=False)
         content_column = root.column(align=True)
         tab_column.operator_context = 'INVOKE_DEFAULT'
         content_column.operator_context = 'EXEC_DEFAULT'
 
-        for panel in panels:
+        for index, panel in enumerate(panels):
             row = tab_column.row(align=True)
             row.operator_context = 'INVOKE_DEFAULT'
+            row.scale_x = state.menu_button_scale
+            row.scale_y = state.menu_button_scale
             row.alert = panel.pinned
             op = row.operator(
                 "dat.main_panel_select",
                 text=panel.label if state.show_tab_labels else "",
                 icon=panel.icon,
                 depress=panel.selected,
+                emboss=panel.selected,
             )
             op.panel_id = panel.identifier
+            if index < len(panels) - 1:
+                tab_column.separator()
 
         for panel in panels:
             if not panel.selected:
@@ -343,6 +369,7 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
 
             box = content_column.box()
             header = box.row(align=True)
+            header.scale_y = state.submenu_button_scale
 
             op = header.operator(
                 "dat.main_panel_expand",
