@@ -12,7 +12,7 @@ class DAT_OP_SelectLanguage(bpy.types.Operator):
     language: bpy.props.EnumProperty(
         name="Language",
         items=dictionary.get_language_items,
-        default=0,
+        default=dictionary.DEFAULT_LANGUAGE,
     )
 
     def execute(self, context):

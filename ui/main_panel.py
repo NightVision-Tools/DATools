@@ -723,9 +723,9 @@ def _draw_panel_content(layout, context, identifier):
         _draw_script_panel(col, context)
 
 
-class DAT_3DV_MainPanel(bpy.types.Panel):
+class DAT_PT_3DV_MainPanel(bpy.types.Panel):
     bl_label = "DATools"
-    bl_idname = "DAT_3DV_MainPanel"
+    bl_idname = "DAT_PT_3DV_MainPanel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "DAT"
@@ -817,6 +817,9 @@ class DAT_3DV_MainPanel(bpy.types.Panel):
 
             if panel.expanded:
                 _draw_panel_content(box, context, panel.identifier)
+
+
+DAT_3DV_MainPanel = DAT_PT_3DV_MainPanel
 
 
 

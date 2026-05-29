@@ -42,7 +42,7 @@ from .dictionary import (
     unregister_translations,
 )
 from .ui.main_panel import (
-    DAT_3DV_MainPanel,
+    DAT_PT_3DV_MainPanel,
     DAT_MainPanelState,
     DAT_OT_MainPanelExpand,
     DAT_OT_MainPanelPin,
@@ -194,7 +194,7 @@ classes = (
     DAT_OT_MainPanelExpand,
     DAT_OT_MainPanelPin,
     DAT_OT_MainPanelPreviewHello,
-    DAT_3DV_MainPanel,
+    DAT_PT_3DV_MainPanel,
 )
 
 

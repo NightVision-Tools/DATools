@@ -21,7 +21,7 @@ DEFAULT_LANGUAGE = "ENGLISH"
 KEY_TO_MSGID = {key: english.strings[key] for key in english.strings}
 
 
-def get_language_items(self=None, context=None):
+def get_language_items(self, context):
     return [
         (
             "ENGLISH",
