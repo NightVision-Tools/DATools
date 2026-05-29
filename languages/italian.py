@@ -62,6 +62,8 @@ strings = {
     "map_it_no_textures": "Nessun nodo texture immagine trovato nei materiali delle mesh selezionate",
     "map_it_completed": "Mapping completato",
     "map_it_live_label": "Mapping live: {} materiale/i",
+    "show_help_buttons_label": "Mostra pulsanti Help",
+    "show_help_buttons_description": "Mostra pulsanti con punto di domanda che aprono la documentazione DATools del tool principale",
     "light_add_label": "Aggiungi luce",
     "light_point_label": "Punto",
     "light_sun_label": "Sole",

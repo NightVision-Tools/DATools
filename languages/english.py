@@ -62,6 +62,8 @@ strings = {
     "map_it_no_textures": "No image texture nodes found on selected mesh materials",
     "map_it_completed": "Map It! completed",
     "map_it_live_label": "Live mapping: {} material(s)",
+    "show_help_buttons_label": "Show Help Buttons",
+    "show_help_buttons_description": "Show question mark buttons that open the DATools documentation for each main tool",
     "light_add_label": "Add Light",
     "light_point_label": "Point",
     "light_sun_label": "Sun",

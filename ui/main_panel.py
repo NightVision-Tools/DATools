@@ -8,6 +8,17 @@ from .. import dictionary
 from ..operators.custom_scripts import active_custom_scripts, draw_custom_script, script_icon
 
 DAT_LOGO_ICON = "DAT_Logo"
+DOCS_BASE_URL = "https://1nightvision1.github.io/DATools_Doc/"
+TOOL_DOC_PATHS = {
+    "floor_it": "Operators/Floor_It/",
+    "scale_it": "Operators/Scale_It/",
+    "mirror_it": "Operators/Mirror_It/",
+    "shrink_it": "Operators/Shrink_It/",
+    "rez_it": "Operators/Rez_It/",
+    "map_it": "Operators/Map_It/",
+    "light_tools": "Operators/Light_Tools/",
+    "custom_scripts": "Custom_Scripts/",
+}
 _preview_collections = {}
 
 # for info -> (identifier, label_key, description_key, icon)
@@ -69,7 +80,28 @@ def _label_with_panel_icon(layout, text, icon):
         layout.label(text=text, icon="BLENDER" if icon == DAT_LOGO_ICON else icon)
 
 
-def _draw_section_header(layout, text="", icon="NONE"):
+def _show_help_buttons(context):
+    state = getattr(context.scene, "dat_panel_state", None)
+    return state is not None and getattr(state, "show_help_buttons", True)
+
+
+def _draw_help_button(layout, doc_path):
+    op = layout.operator("wm.url_open", text="", icon="QUESTION", emboss=False)
+    op.url = DOCS_BASE_URL + doc_path
+    return op
+
+
+def _draw_section_header(layout, text="", icon="NONE", *, context=None, doc_path=None):
+    if context is not None and doc_path and _show_help_buttons(context):
+        split = layout.split(factor=0.85, align=True)
+        title = split.row(align=True)
+        title.label(text=text, icon=icon)
+
+        help_row = split.row(align=True)
+        help_row.alignment = "RIGHT"
+        _draw_help_button(help_row, doc_path)
+        return title
+
     row = layout.row(align=True)
     row.label(text=text, icon=icon)
     return row
@@ -91,6 +123,7 @@ def _draw_action_button(layout, operator_id, text, icon="NONE", *, highlight=Tru
 
 def _draw_axis_action_section(
     layout,
+    context,
     data,
     prop_name,
     header_text,
@@ -98,9 +131,10 @@ def _draw_axis_action_section(
     operator_id,
     operator_text,
     operator_icon,
+    doc_path,
 ):
     box = layout.box()
-    _draw_section_header(box, text=header_text, icon=header_icon)
+    _draw_section_header(box, text=header_text, icon=header_icon, context=context, doc_path=doc_path)
     controls = box.column(align=True)
     _draw_axis_tabs(controls, data, prop_name)
     _draw_action_button(controls, operator_id, operator_text, icon=operator_icon)
@@ -335,6 +369,11 @@ class DAT_MainPanelState(bpy.types.PropertyGroup):
         soft_min=0.9,
         soft_max=1.3,
     )
+    show_help_buttons: BoolProperty(
+        name=dictionary.translate("show_help_buttons_label"),
+        description=dictionary.translate("show_help_buttons_description"),
+        default=True,
+    )
     show_script_names: BoolProperty(
         name="Show Script Names",
         description="Show custom script titles inside the Script panel",
@@ -457,6 +496,7 @@ def _draw_tools_panel(layout, context):
     # --- Scale It ---
     _draw_axis_action_section(
         layout,
+        context,
         scene,
         "dat_scale",
         "Scale Axis",
@@ -464,11 +504,13 @@ def _draw_tools_panel(layout, context):
         "dat.scale_it",
         dictionary.translate("scale_it_label", context),
         "MOD_SCATTER_ON_SURFACE",
+        TOOL_DOC_PATHS["scale_it"],
     )
 
     # --- Mirror It ---
     _draw_axis_action_section(
         layout,
+        context,
         scene,
         "dat_mirror",
         "Mirror Axis",
@@ -476,11 +518,12 @@ def _draw_tools_panel(layout, context):
         "dat.mirror_it",
         dictionary.translate("mirror_it_label", context),
         "MOD_MIRROR",
+        TOOL_DOC_PATHS["mirror_it"],
     )
 
     # --- Shrink It ---
     box = layout.box()
-    _draw_section_header(box, icon="MOD_DECIM")
+    _draw_section_header(box, icon="MOD_DECIM", context=context, doc_path=TOOL_DOC_PATHS["shrink_it"])
     controls = box.column(align=True)
     controls.prop(scene, "dat_shrinkpercentage")
     _draw_action_button(
@@ -492,7 +535,7 @@ def _draw_tools_panel(layout, context):
 
     # --- Floor It ---
     box = layout.box()
-    _draw_section_header(box, icon="CON_FLOOR")
+    _draw_section_header(box, icon="CON_FLOOR", context=context, doc_path=TOOL_DOC_PATHS["floor_it"])
     _draw_action_button(
         box,
         "dat.floor_it",
@@ -511,8 +554,15 @@ def _draw_settings_panel(layout, context):
     layout.prop(state, "menu_icon_scale")
     layout.prop(state, "submenu_button_scale")
     layout.prop(state, "ui_text_scale")
+    layout.prop(state, "show_help_buttons")
     script_box = layout.box()
-    script_box.label(text=dictionary.translate("custom_scripts_running_header", context), icon="FILE_SCRIPT")
+    _draw_section_header(
+        script_box,
+        text=dictionary.translate("custom_scripts_running_header", context),
+        icon="FILE_SCRIPT",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["custom_scripts"],
+    )
     script_box.prop(state, "show_script_names")
     script_box.prop(state, "show_script_icons")
     script_box.prop(state, "align_script_buttons", toggle=True)
@@ -560,7 +610,7 @@ def _draw_texture_panel(layout, context):
 
     # --- Rez It ---
     box = layout.box()
-    _draw_section_header(box, icon="NODE_TEXTURE")
+    _draw_section_header(box, icon="NODE_TEXTURE", context=context, doc_path=TOOL_DOC_PATHS["rez_it"])
     controls = box.column(align=True)
     controls.prop(scene, "dat_textureresolution")
     rez_op = _draw_action_button(
@@ -574,7 +624,13 @@ def _draw_texture_panel(layout, context):
 
     # --- Map It ---
     box = layout.box()
-    box.label(icon="FORCE_TEXTURE", text="Mapping Settings")
+    _draw_section_header(
+        box,
+        text="Mapping Settings",
+        icon="FORCE_TEXTURE",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["map_it"],
+    )
     mapped_count = _get_selected_map_it_material_count(context)
     if mapped_count:
         box.label(text=dictionary.translate("map_it_live_label", context).format(mapped_count), icon="LINKED")
@@ -622,7 +678,13 @@ def _draw_light_panel(layout, context):
     layout.scale_y = state.submenu_button_scale * state.ui_text_scale
 
     box = layout.box()
-    box.label(text=dictionary.translate("light_add_label", context), icon="OUTLINER_OB_LIGHT")
+    _draw_section_header(
+        box,
+        text=dictionary.translate("light_add_label", context),
+        icon="OUTLINER_OB_LIGHT",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["light_tools"],
+    )
 
     row = box.row(align=True)
     op = row.operator(
@@ -685,7 +747,13 @@ def _draw_script_panel(layout, context):
     layout.scale_y = state.submenu_button_scale * state.ui_text_scale
 
     box = layout.box()
-    box.label(text=dictionary.translate("custom_scripts_running_header", context), icon="FILE_SCRIPT")
+    _draw_section_header(
+        box,
+        text=dictionary.translate("custom_scripts_running_header", context),
+        icon="FILE_SCRIPT",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["custom_scripts"],
+    )
 
     scripts = active_custom_scripts(context)
     if not scripts:

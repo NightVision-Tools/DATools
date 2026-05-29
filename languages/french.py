@@ -62,6 +62,8 @@ strings = {
     "map_it_no_textures": "Aucun noeud de texture image trouve dans les materiaux des meshes selectionnes",
     "map_it_completed": "Mapping termine",
     "map_it_live_label": "Mapping live : {} materiau(x)",
+    "show_help_buttons_label": "Afficher les boutons d'aide",
+    "show_help_buttons_description": "Affiche des boutons point d'interrogation qui ouvrent la documentation DATools de chaque outil principal",
     "light_add_label": "Ajouter une lumiere",
     "light_point_label": "Point",
     "light_sun_label": "Soleil",

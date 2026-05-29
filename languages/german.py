@@ -62,6 +62,8 @@ strings = {
     "map_it_no_textures": "Keine Bildtextur-Knoten in den Materialien der ausgewaehlten Meshes gefunden",
     "map_it_completed": "Map It! abgeschlossen",
     "map_it_live_label": "Live-Mapping: {} Material(ien)",
+    "show_help_buttons_label": "Hilfeschaltflächen anzeigen",
+    "show_help_buttons_description": "Zeigt Fragezeichen-Schaltflächen, die die DATools-Dokumentation fuer jedes Hauptwerkzeug oeffnen",
     "light_add_label": "Licht hinzufuegen",
     "light_point_label": "Punkt",
     "light_sun_label": "Sonne",
