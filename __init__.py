@@ -3,7 +3,7 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick",
-    "version": (1, 7, 0),
+    "version": (1, 9, 0),
     "blender": (5, 1, 0),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
@@ -27,6 +27,12 @@ if __package__ is None:
         package_module.__path__ = [addon_path]
         sys.modules[addon_name] = package_module
     __package__ = addon_name
+
+ADDON_MODULE = __package__ or __name__
+
+from . import dictionary
+
+dictionary.set_addon_module(ADDON_MODULE)
 
 from .dictionary import (
     get_language_items,
@@ -53,16 +59,31 @@ from .operators.scale_it import DAT_OP_ScaleIt
 from .operators.mirror_it import DAT_OP_Mirrorit
 from .operators.shrink_it import DAT_OP_ShrinkIt
 from .operators.map_it import DAT_OP_MapIt
+from .operators.custom_scripts import (
+    DAT_CustomScriptItem,
+    DAT_OT_CustomScriptAdd,
+    DAT_OT_CustomScriptDisplayToggle,
+    DAT_OT_CustomScriptEdit,
+    DAT_OT_CustomScriptIcon,
+    DAT_OT_CustomScriptMove,
+    DAT_OT_CustomScriptRename,
+    DAT_OT_CustomScriptRemove,
+    DAT_OT_CustomScriptToggle,
+    draw_custom_scripts_settings,
+    register_enabled_custom_scripts,
+    unregister_custom_scripts,
+)
 
 
 class DAToolsPreferences(bpy.types.AddonPreferences):
-    bl_idname = "DATools"
+    bl_idname = ADDON_MODULE
     bl_label = "DATools Preferences"
 
-    language = bpy.props.StringProperty(
+    language: bpy.props.StringProperty(
         name="Language",
         default="ENGLISH",
-    )  # type: ignore[assignment]
+    )
+    custom_scripts: bpy.props.CollectionProperty(type=DAT_CustomScriptItem)
 
     def draw(self, context):
         layout = self.layout
@@ -81,11 +102,87 @@ class DAToolsPreferences(bpy.types.AddonPreferences):
         row.operator("dat.select_language", text=translate("language_option_german", context)).language = "GERMAN"
         row.operator("dat.select_language", text=translate("language_option_french", context)).language = "FRENCH"
 
+        draw_custom_scripts_settings(layout, context)
+        _draw_icon_viewer_preferences(layout, context)
+
+
+def _get_icon_viewer_addon(context):
+    addon = context.preferences.addons.get("bl_ext.blender_org.icon_viewer")
+    if addon is not None:
+        return addon
+
+    for addon_key in context.preferences.addons.keys():
+        if addon_key.endswith(".icon_viewer") or addon_key == "icon_viewer":
+            addon = context.preferences.addons.get(addon_key)
+            if addon is not None:
+                return addon
+
+    return None
+
+
+def _draw_prop_if_exists(layout, data, prop_name):
+    if hasattr(data, prop_name):
+        layout.prop(data, prop_name)
+
+
+def _draw_icon_viewer_preferences(layout, context):
+    box = layout.box()
+    box.label(text="Icon Viewer Preferences", icon="FILE_IMAGE")
+
+    addon = _get_icon_viewer_addon(context)
+    if addon is None:
+        box.label(text="Icon Viewer add-on not enabled: bl_ext.blender_org.icon_viewer", icon="INFO")
+        return
+
+    prefs = addon.preferences
+
+    try:
+        box.operator("iv.icons_show", icon="VIEWZOOM")
+    except Exception:
+        pass
+
+    row = box.row()
+
+    col = row.column(align=True)
+    col.label(text="Icons:")
+    _draw_prop_if_exists(col, prefs, "show_matcap_icons")
+    _draw_prop_if_exists(col, prefs, "show_brush_icons")
+    _draw_prop_if_exists(col, prefs, "show_colorset_icons")
+    _draw_prop_if_exists(col, prefs, "show_event_icons")
+    col.separator()
+    _draw_prop_if_exists(col, prefs, "show_history")
+
+    col = row.column(align=True)
+    col.label(text="Popup:")
+    _draw_prop_if_exists(col, prefs, "auto_focus_filter")
+    _draw_prop_if_exists(col, prefs, "copy_on_select")
+    if getattr(prefs, "copy_on_select", False):
+        _draw_prop_if_exists(col, prefs, "close_on_select")
+
+    col = row.column(align=True)
+    col.label(text="Panel:")
+    _draw_prop_if_exists(col, prefs, "show_panel")
+    if getattr(prefs, "show_panel", False):
+        _draw_prop_if_exists(col, prefs, "show_panel_icons")
+
+    col.separator()
+    col.label(text="Header:")
+    _draw_prop_if_exists(col, prefs, "show_header")
+
 
 # register classes
 classes = (
+    DAT_CustomScriptItem,
     DAToolsPreferences,
     DAT_OP_SelectLanguage,
+    DAT_OT_CustomScriptAdd,
+    DAT_OT_CustomScriptRemove,
+    DAT_OT_CustomScriptEdit,
+    DAT_OT_CustomScriptRename,
+    DAT_OT_CustomScriptIcon,
+    DAT_OT_CustomScriptMove,
+    DAT_OT_CustomScriptDisplayToggle,
+    DAT_OT_CustomScriptToggle,
     DAT_OP_FloorIt,
     DAT_OP_RezIt,
     DAT_OP_ScaleIt,
@@ -109,9 +206,11 @@ def register():
 
     register_translations()
     register_scene_properties()
+    register_enabled_custom_scripts()
 
 
 def unregister():
+    unregister_custom_scripts()
     unregister_translations()
 
     for prop in (

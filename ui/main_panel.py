@@ -5,6 +5,7 @@ from collections import namedtuple
 from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProperty
 
 from .. import dictionary
+from ..operators.custom_scripts import active_custom_scripts, draw_custom_script, script_icon
 
 DAT_LOGO_ICON = "DAT_Logo"
 _preview_collections = {}
@@ -15,6 +16,7 @@ PANEL_ITEMS = (
     ("TOOLS", "menu_tools", "General operators", "TOOL_SETTINGS"),
     ("TEXTURE", "menu_texture", "Texture tools", "TEXTURE"),
     ("LIGHT", "menu_light", "Lighting tools", "OUTLINER_OB_LIGHT"),
+    ("SCRIPT", "menu_script", "Custom scripts", "FILE_SCRIPT"),
     ("IO", "menu_io", "Import and export", "NETWORK_DRIVE"),
     ("SETTINGS", "menu_settings", "DATools settings", "SETTINGS"),
 )
@@ -232,6 +234,13 @@ def ui_menu_options(self, context):
             5,
         ),
         (
+            "Script",
+            dictionary.translate("menu_script", context),
+            dictionary.translate("menu_script", context),
+            "FILE_SCRIPT",
+            6,
+        ),
+        (
             "I/O",
             dictionary.translate("menu_io", context),
             dictionary.translate("menu_io", context),
@@ -325,6 +334,21 @@ class DAT_MainPanelState(bpy.types.PropertyGroup):
         max=1.6,
         soft_min=0.9,
         soft_max=1.3,
+    )
+    show_script_names: BoolProperty(
+        name="Show Script Names",
+        description="Show custom script titles inside the Script panel",
+        default=True,
+    )
+    show_script_icons: BoolProperty(
+        name="Show Script Icons",
+        description="Show custom script icons inside the Script panel",
+        default=True,
+    )
+    align_script_buttons: BoolProperty(
+        name="Align Script Buttons",
+        description="Draw custom script controls in aligned rows",
+        default=False,
     )
 
 
@@ -487,6 +511,11 @@ def _draw_settings_panel(layout, context):
     layout.prop(state, "menu_icon_scale")
     layout.prop(state, "submenu_button_scale")
     layout.prop(state, "ui_text_scale")
+    script_box = layout.box()
+    script_box.label(text=dictionary.translate("custom_scripts_running_header", context), icon="FILE_SCRIPT")
+    script_box.prop(state, "show_script_names")
+    script_box.prop(state, "show_script_icons")
+    script_box.prop(state, "align_script_buttons", toggle=True)
     _draw_settings_preview(layout, context)
 
 
@@ -651,6 +680,30 @@ def _draw_light_panel(layout, context):
         box.prop(light, "spot_blend")
 
 
+def _draw_script_panel(layout, context):
+    state = context.scene.dat_panel_state
+    layout.scale_y = state.submenu_button_scale * state.ui_text_scale
+
+    box = layout.box()
+    box.label(text=dictionary.translate("custom_scripts_running_header", context), icon="FILE_SCRIPT")
+
+    scripts = active_custom_scripts(context)
+    if not scripts:
+        box.label(text=dictionary.translate("custom_scripts_empty_active", context), icon="INFO")
+        return
+
+    script_column = box.column(align=state.align_script_buttons)
+    for item in scripts:
+        script_box = script_column.column(align=state.align_script_buttons) if state.align_script_buttons else script_column.box()
+        show_title = state.show_script_names and getattr(item, "show_title", True)
+        show_icon = state.show_script_icons and getattr(item, "show_icon", True)
+        if show_title:
+            script_box.label(text=item.name, icon=script_icon(item) if show_icon else "NONE")
+        elif show_icon:
+            script_box.label(text="", icon=script_icon(item))
+        draw_custom_script(script_box, context, item)
+
+
 def _draw_panel_content(layout, context, identifier):
     col = layout.column(align=True)
 
@@ -666,6 +719,8 @@ def _draw_panel_content(layout, context, identifier):
         _draw_texture_panel(col, context)
     elif identifier == "LIGHT":
         _draw_light_panel(col, context)
+    elif identifier == "SCRIPT":
+        _draw_script_panel(col, context)
 
 
 class DAT_3DV_MainPanel(bpy.types.Panel):

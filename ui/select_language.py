@@ -12,11 +12,11 @@ class DAT_OP_SelectLanguage(bpy.types.Operator):
     language: bpy.props.EnumProperty(
         name="Language",
         items=dictionary.get_language_items,
-        default="ENGLISH",
+        default=0,
     )
 
     def execute(self, context):
-        addon = context.preferences.addons.get(dictionary.ADDON_MODULE)
+        addon = dictionary.get_addon(context)
         if addon is None:
             self.report({"ERROR"}, "Addon preferences not found")
             return {"CANCELLED"}

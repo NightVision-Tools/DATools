@@ -21,7 +21,7 @@ DEFAULT_LANGUAGE = "ENGLISH"
 KEY_TO_MSGID = {key: english.strings[key] for key in english.strings}
 
 
-def get_language_items():
+def get_language_items(self=None, context=None):
     return [
         (
             "ENGLISH",
@@ -54,13 +54,46 @@ def get_language_items():
     ]
 
 
-def get_addon_preferences(context=None):
+def get_addon(context=None):
     if context is None:
         context = bpy.context
-    addon = context.preferences.addons.get(ADDON_MODULE)
+
+    candidates = []
+    for candidate in (ADDON_MODULE, "DATools"):
+        if candidate and candidate not in candidates:
+            candidates.append(candidate)
+
+    package_suffix = "." + ADDON_MODULE if ADDON_MODULE else ""
+    for candidate in candidates:
+        addon = context.preferences.addons.get(candidate)
+        if addon is not None:
+            return addon
+
+    for addon_key in context.preferences.addons.keys():
+        addon = context.preferences.addons.get(addon_key)
+        if addon is None:
+            continue
+        if addon_key == ADDON_MODULE or addon_key == "DATools":
+            return addon
+        if package_suffix and addon_key.endswith(package_suffix):
+            return addon
+        if addon_key.endswith(".DATools"):
+            return addon
+
+    return None
+
+
+def get_addon_preferences(context=None):
+    addon = get_addon(context)
     if addon is None:
         return None
     return addon.preferences
+
+
+def set_addon_module(module_name):
+    global ADDON_MODULE
+    if module_name:
+        ADDON_MODULE = module_name
 
 
 def get_language(context=None):
