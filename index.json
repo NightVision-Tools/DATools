@@ -29,6 +29,34 @@
       "archive_url": "./DATools-1.7.0-alpha.zip",
       "archive_size": 46110,
       "archive_hash": "sha256:32175a8bc4e712dded244a182857e623bf8735e11d840026944bc25cc027d15d"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.9.0-alpha",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick, Dallasrt",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://1nightvision1.github.io/DATools_Doc/",
+      "tags": [
+        "3D View",
+        "Import-Export",
+        "Lighting",
+        "Material",
+        "Modeling",
+        "Mesh",
+        "Object",
+        "Scene",
+        "UV"
+      ],
+      "archive_url": "./DATools-1.9.0-alpha.zip",
+      "archive_size": 51983,
+      "archive_hash": "sha256:23e196d4ec898150ca99e649a2b4b64fe2e666c7dcabdb8b18cf4f4bcf52a8d1"
     }
   ]
 }
