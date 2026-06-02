@@ -10,6 +10,7 @@ from bpy.types import Menu, Operator
 from mathutils import Vector
 
 from .. import dictionary
+from ..ui.help_buttons import DOC_PATHS, draw_doc_header
 
 
 COLLISION_OBJECT_KEY = "is_collision"
@@ -784,7 +785,7 @@ class DAT_OP_GltfExport(Operator):
         prefs = _addon_preferences(context)
 
         box = layout.box()
-        box.label(text=_t("gltf_export_options_header", context))
+        draw_doc_header(box, text=_t("gltf_export_options_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
         box.prop(self, "export_format_ui")
         box.prop(self, "export_scope")
         box.prop(self, "apply_modifiers")
@@ -793,7 +794,7 @@ class DAT_OP_GltfExport(Operator):
         box.prop(self, "unicode_policy")
 
         geo = layout.box()
-        geo.label(text=_t("gltf_geometry_header", context))
+        draw_doc_header(geo, text=_t("gltf_geometry_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
         geo.prop(self, "triangulate_all")
         geo.prop(self, "convert_curves_to_mesh")
         geo.prop(self, "convert_text_to_mesh")
@@ -801,18 +802,18 @@ class DAT_OP_GltfExport(Operator):
         geo.prop(self, "convert_meta_to_mesh")
 
         obj_box = layout.box()
-        obj_box.label(text=_t("gltf_object_types_header", context))
+        draw_doc_header(obj_box, text=_t("gltf_object_types_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
         obj_box.prop(self, "include_empties")
         obj_box.prop(self, "include_cameras")
         obj_box.prop(self, "lights_mode")
         obj_box.prop(self, "exclude_unsupported_lights")
 
         anim = layout.box()
-        anim.label(text=_t("gltf_animations_header", context))
+        draw_doc_header(anim, text=_t("gltf_animations_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
         anim.prop(self, "export_animations_mode")
 
         collisions = layout.box()
-        collisions.label(text=_t("gltf_collision_options_header", context))
+        draw_doc_header(collisions, text=_t("gltf_collision_options_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
         collisions.prop(self, "use_prefix_for_collisions")
         collisions.label(text=_t("gltf_prefix_status_label", context).format(prefs.gltf_collision_prefix))
         collisions.prop(self, "use_property_for_collisions")
@@ -820,7 +821,7 @@ class DAT_OP_GltfExport(Operator):
         collisions.label(text=_t("gltf_collision_key_label", context).format(COLLISION_OBJECT_KEY))
 
         profiles = layout.box()
-        profiles.label(text=_t("gltf_export_profile_header", context))
+        draw_doc_header(profiles, text=_t("gltf_export_profile_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
         profiles.prop(prefs, "gltf_active_profile", text=_t("gltf_active_profile_label", context))
         row = profiles.row(align=True)
         row.prop(self, "profile_save_as")
@@ -1220,7 +1221,13 @@ def draw_gltf_io_panel(layout, context):
     layout.scale_y = state.submenu_button_scale * state.ui_text_scale
 
     collision_box = layout.box()
-    collision_box.label(text=_t("gltf_collision_helpers_header", context), icon="MOD_PHYSICS")
+    draw_doc_header(
+        collision_box,
+        text=_t("gltf_collision_helpers_header", context),
+        icon="MOD_PHYSICS",
+        context=context,
+        doc_path=DOC_PATHS["io_tools"],
+    )
     row = collision_box.row(align=True)
     row.operator("dat.toggle_collision", text=_t("gltf_toggle_collision_label", context), icon="FILE_REFRESH").set_state = "TOGGLE"
     row.operator("dat.toggle_collision", text=_t("gltf_collision_on_label", context), icon="CHECKMARK").set_state = "ON"
@@ -1229,7 +1236,13 @@ def draw_gltf_io_panel(layout, context):
     collision_box.label(text=_t("gltf_collision_key_label", context).format(COLLISION_OBJECT_KEY), icon="INFO")
 
     actions_box = layout.box()
-    actions_box.label(text=_t("gltf_quick_actions_header", context), icon="NETWORK_DRIVE")
+    draw_doc_header(
+        actions_box,
+        text=_t("gltf_quick_actions_header", context),
+        icon="NETWORK_DRIVE",
+        context=context,
+        doc_path=DOC_PATHS["io_tools"],
+    )
     actions_box.label(text=_t("dat_imports_header", context), icon="IMPORT")
     actions_box.operator("dat.import_gltf", text=_t("gltf_import_label", context), icon="IMPORT")
     actions_box.operator("dat.import_fbx", text=_t("fbx_import_label", context), icon="IMPORT")
@@ -1241,7 +1254,13 @@ def draw_gltf_io_panel(layout, context):
     actions_box.operator("dat.export_stl", text=_t("stl_export_label", context), icon="EXPORT")
 
     profile_box = layout.box()
-    profile_box.label(text=_t("gltf_export_profile_header", context), icon="PRESET")
+    draw_doc_header(
+        profile_box,
+        text=_t("gltf_export_profile_header", context),
+        icon="PRESET",
+        context=context,
+        doc_path=DOC_PATHS["io_tools"],
+    )
     profile_box.prop(prefs, "gltf_active_profile", text=_t("gltf_active_profile_label", context))
     row = profile_box.row(align=True)
     op = row.operator("dat.gltf_profile_delete", text=_t("gltf_delete_active_profile_label", context), icon="TRASH")
@@ -1253,7 +1272,13 @@ def draw_gltf_io_panel(layout, context):
 def draw_gltf_settings(layout, context):
     prefs = _addon_preferences(context)
     box = layout.box()
-    box.label(text=_t("gltf_io_header", context), icon="NETWORK_DRIVE")
+    draw_doc_header(
+        box,
+        text=_t("gltf_io_header", context),
+        icon="NETWORK_DRIVE",
+        context=context,
+        doc_path=DOC_PATHS["io_tools"],
+    )
     box.prop(prefs, "gltf_collision_prefix", text=_t("gltf_collision_prefix_label", context))
     box.prop(prefs, "gltf_active_profile", text=_t("gltf_active_profile_label", context))
     row = box.row(align=True)

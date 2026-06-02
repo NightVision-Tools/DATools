@@ -10,6 +10,7 @@ from bpy.types import Operator, PropertyGroup
 from bpy_extras.io_utils import ImportHelper
 
 from .. import dictionary
+from ..ui.help_buttons import DOC_PATHS, draw_help_button, show_help_buttons
 
 
 _loaded_modules = {}
@@ -243,10 +244,21 @@ def draw_custom_scripts_settings(layout, context):
     prefs = _get_addon_preferences(context)
 
     box = layout.box()
-    header = box.row(align=True)
-    header.label(text=dictionary.translate("custom_scripts_header", context), icon="FILE_SCRIPT")
-    header.operator_context = "INVOKE_DEFAULT"
-    header.operator("dat.custom_script_add", text="", icon="ADD")
+    if show_help_buttons(context):
+        split = box.split(factor=0.72, align=True)
+        header = split.row(align=True)
+        header.label(text=dictionary.translate("custom_scripts_header", context), icon="FILE_SCRIPT")
+
+        actions = split.row(align=True)
+        actions.alignment = "RIGHT"
+        actions.operator_context = "INVOKE_DEFAULT"
+        actions.operator("dat.custom_script_add", text="", icon="ADD")
+        draw_help_button(actions, DOC_PATHS["custom_scripts"])
+    else:
+        header = box.row(align=True)
+        header.label(text=dictionary.translate("custom_scripts_header", context), icon="FILE_SCRIPT")
+        header.operator_context = "INVOKE_DEFAULT"
+        header.operator("dat.custom_script_add", text="", icon="ADD")
 
     if prefs is None:
         box.label(text="DATools preferences not found", icon="ERROR")

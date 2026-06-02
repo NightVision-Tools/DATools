@@ -7,19 +7,10 @@ from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProper
 from .. import dictionary
 from ..operators.custom_scripts import active_custom_scripts, draw_custom_script, script_icon
 from ..operators.gltf_da import draw_gltf_io_panel
+from .help_buttons import DOC_PATHS as TOOL_DOC_PATHS
+from .help_buttons import draw_doc_header as _draw_section_header
 
 DAT_LOGO_ICON = "DAT_Logo"
-DOCS_BASE_URL = "https://1nightvision1.github.io/DATools_Doc/"
-TOOL_DOC_PATHS = {
-    "floor_it": "Operators/Floor_It/",
-    "scale_it": "Operators/Scale_It/",
-    "mirror_it": "Operators/Mirror_It/",
-    "shrink_it": "Operators/Shrink_It/",
-    "rez_it": "Operators/Rez_It/",
-    "map_it": "Operators/Map_It/",
-    "light_tools": "Operators/Light_Tools/",
-    "custom_scripts": "Custom_Scripts/",
-}
 _preview_collections = {}
 
 # for info -> (identifier, label_key, description_key, icon)
@@ -79,33 +70,6 @@ def _label_with_panel_icon(layout, text, icon):
         layout.label(text=text, icon_value=icon_value)
     else:
         layout.label(text=text, icon="BLENDER" if icon == DAT_LOGO_ICON else icon)
-
-
-def _show_help_buttons(context):
-    state = getattr(context.scene, "dat_panel_state", None)
-    return state is not None and getattr(state, "show_help_buttons", True)
-
-
-def _draw_help_button(layout, doc_path):
-    op = layout.operator("wm.url_open", text="", icon="QUESTION", emboss=False)
-    op.url = DOCS_BASE_URL + doc_path
-    return op
-
-
-def _draw_section_header(layout, text="", icon="NONE", *, context=None, doc_path=None):
-    if context is not None and doc_path and _show_help_buttons(context):
-        split = layout.split(factor=0.85, align=True)
-        title = split.row(align=True)
-        title.label(text=text, icon=icon)
-
-        help_row = split.row(align=True)
-        help_row.alignment = "RIGHT"
-        _draw_help_button(help_row, doc_path)
-        return title
-
-    row = layout.row(align=True)
-    row.label(text=text, icon=icon)
-    return row
 
 
 def _draw_axis_tabs(layout, data, prop_name):
@@ -547,6 +511,13 @@ def _draw_tools_panel(layout, context):
 
 def _draw_settings_panel(layout, context):
     state = context.scene.dat_panel_state
+    _draw_section_header(
+        layout,
+        text=dictionary.translate("menu_settings", context),
+        icon="SETTINGS",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["preferences"],
+    )
     layout.prop(state, "vertical_tabs")
     layout.prop(state, "shift_multiselect")
     layout.prop(state, "show_tab_labels")
@@ -726,7 +697,13 @@ def _draw_light_panel(layout, context):
         return
 
     light = active.data
-    box.label(text=dictionary.translate("light_selected_label", context), icon="OUTLINER_OB_LIGHT")
+    _draw_section_header(
+        box,
+        text=dictionary.translate("light_selected_label", context),
+        icon="OUTLINER_OB_LIGHT",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["light_tools"],
+    )
     box.prop(light, "type")
     box.prop(light, "color")
     box.prop(light, "energy")
@@ -781,7 +758,13 @@ def _draw_panel_content(layout, context, identifier):
     elif identifier == "SETTINGS":
         _draw_settings_panel(col, context)
     elif identifier == "BLENDER":
-        _label_with_panel_icon(col, dictionary.translate("menu_blender", context), DAT_LOGO_ICON)
+        _draw_section_header(
+            col,
+            text=dictionary.translate("menu_blender", context),
+            icon="BLENDER",
+            context=context,
+            doc_path=TOOL_DOC_PATHS["interface"],
+        )
     elif identifier == "IO":
         draw_gltf_io_panel(col, context)
     elif identifier == "TEXTURE":

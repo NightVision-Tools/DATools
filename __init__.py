@@ -3,7 +3,7 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick",
-    "version": (1, 9, 6),
+    "version": (1, 10, 0),
     "blender": (5, 1, 2),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
@@ -52,6 +52,7 @@ from .ui.main_panel import (
     register_scene_properties,
     unregister_custom_icons,
 )
+from .ui.help_buttons import DOC_PATHS, draw_doc_header
 from .ui.select_language import DAT_OP_SelectLanguage
 from .operators.floor_it import DAT_OP_FloorIt
 from .operators.rez_it import DAT_OP_RezIt
@@ -135,18 +136,25 @@ class DAToolsPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text=translate("addon_language_header", context))
-        layout.label(
+        language_box = layout.box()
+        draw_doc_header(
+            language_box,
+            text=translate("addon_language_header", context),
+            icon="WORLD",
+            context=context,
+            doc_path=DOC_PATHS["preferences"],
+        )
+        language_box.label(
             text=str(translate("selected_language_text", context)).format(
                 get_language_display(self.language)
             )
         )
 
-        row = layout.row()
+        row = language_box.row()
         row.operator("dat.select_language", text=translate("language_option_english", context)).language = "ENGLISH"
         row.operator("dat.select_language", text=translate("language_option_italian", context)).language = "ITALIAN"
 
-        row = layout.row()
+        row = language_box.row()
         row.operator("dat.select_language", text=translate("language_option_german", context)).language = "GERMAN"
         row.operator("dat.select_language", text=translate("language_option_french", context)).language = "FRENCH"
 
