@@ -17,12 +17,13 @@ DEFAULT_COLLISION_PREFIX = "COL_"
 PROFILE_DEFAULT_NAME = "Default"
 EXPORT_CONTROL_STATE = {
     "pending_kwargs": None,
+    "pending_operator_id": "",
     "warning_title": "",
     "warning_message": "",
     "warning_details": "",
     "warning_nodes": [],
 }
-EXPORT_CONTROL_WARNING_PIE_ID = "DAT_MT_gltf_export_control_warning_pie"
+EXPORT_CONTROL_WARNING_PIE_ID = "DAT_MT_export_control_warning_pie"
 SUPPORTED_EXPORT_MATERIAL_NODE_TYPES = {
     "BSDF_PRINCIPLED",
     "TEX_IMAGE",
@@ -75,6 +76,12 @@ def _ensure_extension(filepath, export_format_ui):
     return filepath
 
 
+def _ensure_file_extension(filepath, extension):
+    if not filepath.lower().endswith(extension.lower()):
+        return filepath + extension
+    return filepath
+
+
 def _world_bbox(obj):
     corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
     min_v = Vector((min(c.x for c in corners), min(c.y for c in corners), min(c.z for c in corners)))
@@ -123,26 +130,24 @@ def _check_material_export_problems(objects, prefix="", use_prefix=True, use_pro
     return sorted(invalid_objects), sorted(invalid_nodes), warning_nodes
 
 
-def _store_export_control_warning(operator, context, invalid_objects, invalid_nodes, warning_nodes):
+def _store_export_control_warning(operator, context, invalid_objects, invalid_nodes, warning_nodes, pending_fields=None):
+    fields = pending_fields or getattr(operator, "export_control_fields", PROFILE_FIELDS)
     EXPORT_CONTROL_STATE["pending_kwargs"] = {
         key: getattr(operator, key)
-        for key in PROFILE_FIELDS
+        for key in fields
         if hasattr(operator, key)
     }
-    EXPORT_CONTROL_STATE["pending_kwargs"].update(
-        {
-            "filepath": operator.filepath,
-            "filter_glob": operator.filter_glob,
-            "profile_save_as": operator.profile_save_as,
-            "profile_new_name": operator.profile_new_name,
-            "skip_export_control": True,
-        }
-    )
-    EXPORT_CONTROL_STATE["warning_title"] = _t("gltf_export_control_warning_title", context)
-    EXPORT_CONTROL_STATE["warning_message"] = _t("gltf_export_control_warning_objects", context).format(
+    for key in ("filepath", "filter_glob", "profile_save_as", "profile_new_name"):
+        if hasattr(operator, key):
+            EXPORT_CONTROL_STATE["pending_kwargs"][key] = getattr(operator, key)
+    if hasattr(operator, "skip_export_control"):
+        EXPORT_CONTROL_STATE["pending_kwargs"]["skip_export_control"] = True
+    EXPORT_CONTROL_STATE["pending_operator_id"] = operator.bl_idname
+    EXPORT_CONTROL_STATE["warning_title"] = _t("export_control_warning_title", context)
+    EXPORT_CONTROL_STATE["warning_message"] = _t("export_control_warning_objects", context).format(
         _format_name_list(invalid_objects)
     )
-    EXPORT_CONTROL_STATE["warning_details"] = _t("gltf_export_control_warning_nodes", context).format(
+    EXPORT_CONTROL_STATE["warning_details"] = _t("export_control_warning_nodes", context).format(
         _format_name_list(invalid_nodes)
     )
     EXPORT_CONTROL_STATE["warning_nodes"] = warning_nodes
@@ -150,6 +155,7 @@ def _store_export_control_warning(operator, context, invalid_objects, invalid_no
 
 def _clear_export_control_state():
     EXPORT_CONTROL_STATE["pending_kwargs"] = None
+    EXPORT_CONTROL_STATE["pending_operator_id"] = ""
     EXPORT_CONTROL_STATE["warning_title"] = ""
     EXPORT_CONTROL_STATE["warning_message"] = ""
     EXPORT_CONTROL_STATE["warning_details"] = ""
@@ -158,14 +164,47 @@ def _clear_export_control_state():
 
 def _continue_pending_export(context, reporter=None):
     pending_kwargs = EXPORT_CONTROL_STATE.get("pending_kwargs")
-    if not pending_kwargs:
+    operator_id = EXPORT_CONTROL_STATE.get("pending_operator_id")
+    if not pending_kwargs or not operator_id:
         if reporter is not None:
-            reporter({"ERROR"}, _t("gltf_export_control_missing_pending", context))
+            reporter({"ERROR"}, _t("export_control_missing_pending", context))
         return {"CANCELLED"}
 
-    result = bpy.ops.dat.export_gltf("EXEC_DEFAULT", **pending_kwargs)
+    try:
+        module_name, operator_name = operator_id.split(".", 1)
+        operator = getattr(getattr(bpy.ops, module_name), operator_name)
+    except Exception:
+        if reporter is not None:
+            reporter({"ERROR"}, _t("export_control_missing_pending", context))
+        return {"CANCELLED"}
+
+    call_context = "EXEC_DEFAULT" if pending_kwargs.get("filepath") else "INVOKE_DEFAULT"
+    result = operator(call_context, **pending_kwargs)
     _clear_export_control_state()
     return result
+
+
+def _warn_for_export_materials_if_needed(operator, context, objects, use_prefix=True, use_property=True):
+    if not getattr(operator, "check_materials_before_export", False):
+        return False
+    if getattr(operator, "skip_export_control", False):
+        return False
+    if hasattr(operator, "export_materials") and getattr(operator, "export_materials") != "EXPORT":
+        return False
+
+    prefs = _addon_preferences(context)
+    invalid_objects, invalid_nodes, warning_nodes = _check_material_export_problems(
+        objects,
+        prefs.gltf_collision_prefix,
+        use_prefix,
+        use_property,
+    )
+    if not invalid_objects:
+        return False
+
+    _store_export_control_warning(operator, context, invalid_objects, invalid_nodes, warning_nodes)
+    bpy.ops.dat.export_control_warning("INVOKE_DEFAULT")
+    return True
 
 
 def _scene_has_animations(context):
@@ -194,6 +233,31 @@ def _call_operator_with_supported_properties(operator, **kwargs):
     if supported:
         kwargs = {key: value for key, value in kwargs.items() if key in supported}
     return operator(**kwargs)
+
+
+def _resolve_bpy_operator(operator_path):
+    current = bpy.ops
+    for part in operator_path.split("."):
+        try:
+            current = getattr(current, part)
+        except Exception:
+            return None
+    return current
+
+
+def _call_first_available_operator(operator_paths, **kwargs):
+    last_error = None
+    for operator_path in operator_paths:
+        operator = _resolve_bpy_operator(operator_path)
+        if operator is None:
+            continue
+        try:
+            return _call_operator_with_supported_properties(operator, **kwargs)
+        except Exception as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("No compatible Blender operator found")
 
 
 def _strip_accents_to_ascii(text):
@@ -359,6 +423,205 @@ class DAT_OP_GltfImport(Operator):
         return {"FINISHED"}
 
 
+class DAT_OP_FbxImport(Operator):
+    bl_idname = "dat.import_fbx"
+    bl_label = "Import FBX"
+    bl_description = "Import an FBX file for the Dungeon Alchemist pipeline"
+    bl_options = {"REGISTER", "UNDO"}
+
+    filepath: StringProperty(name="File", subtype="FILE_PATH")
+    filter_glob: StringProperty(default="*.fbx", options={"HIDDEN"})
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context):
+        if not self.filepath:
+            self.report({"ERROR"}, _t("gltf_no_file_selected", context))
+            return {"CANCELLED"}
+
+        try:
+            _call_operator_with_supported_properties(bpy.ops.import_scene.fbx, filepath=self.filepath)
+        except Exception as exc:
+            self.report({"ERROR"}, f"{_t('gltf_import_failed', context)}: {exc}")
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
+class DAT_OP_StlImport(Operator):
+    bl_idname = "dat.import_stl"
+    bl_label = "Import STL"
+    bl_description = "Import an STL file for the Dungeon Alchemist pipeline"
+    bl_options = {"REGISTER", "UNDO"}
+
+    filepath: StringProperty(name="File", subtype="FILE_PATH")
+    filter_glob: StringProperty(default="*.stl", options={"HIDDEN"})
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context):
+        if not self.filepath:
+            self.report({"ERROR"}, _t("gltf_no_file_selected", context))
+            return {"CANCELLED"}
+
+        try:
+            _call_first_available_operator(
+                ("wm.stl_import", "import_mesh.stl"),
+                filepath=self.filepath,
+            )
+        except Exception as exc:
+            self.report({"ERROR"}, f"{_t('gltf_import_failed', context)}: {exc}")
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
+class DAT_OP_UsdzImport(Operator):
+    bl_idname = "dat.import_usdz"
+    bl_label = "Import USDZ"
+    bl_description = "Import a USDZ file for the Dungeon Alchemist pipeline"
+    bl_options = {"REGISTER", "UNDO"}
+
+    filepath: StringProperty(name="File", subtype="FILE_PATH")
+    filter_glob: StringProperty(default="*.usdz", options={"HIDDEN"})
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context):
+        if not self.filepath:
+            self.report({"ERROR"}, _t("gltf_no_file_selected", context))
+            return {"CANCELLED"}
+
+        try:
+            _call_first_available_operator(
+                ("wm.usd_import", "import_scene.usd"),
+                filepath=self.filepath,
+            )
+        except Exception as exc:
+            self.report({"ERROR"}, f"{_t('gltf_import_failed', context)}: {exc}")
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
+class DAT_OP_FbxExport(Operator):
+    bl_idname = "dat.export_fbx"
+    bl_label = "Export FBX"
+    bl_description = "Export selected objects to FBX with DATools export control"
+    bl_options = {"REGISTER"}
+    export_control_fields = ("check_materials_before_export",)
+
+    filepath: StringProperty(name="File", subtype="FILE_PATH")
+    filter_glob: StringProperty(default="*.fbx", options={"HIDDEN"})
+    check_materials_before_export: BoolProperty(name="Check Materials Before Export", default=True)
+    skip_export_control: BoolProperty(default=False, options={"HIDDEN"})
+
+    def invoke(self, context, event):
+        if _warn_for_export_materials_if_needed(self, context, context.selected_objects):
+            return {"CANCELLED"}
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def draw(self, context):
+        self.layout.prop(self, "check_materials_before_export")
+
+    def execute(self, context):
+        if not self.filepath:
+            self.report({"ERROR"}, _t("gltf_no_file_selected", context))
+            return {"CANCELLED"}
+        if _warn_for_export_materials_if_needed(self, context, context.selected_objects):
+            return {"CANCELLED"}
+
+        export_path = _ensure_file_extension(self.filepath, ".fbx")
+        try:
+            result = _call_operator_with_supported_properties(
+                bpy.ops.export_scene.fbx,
+                filepath=export_path,
+                check_existing=True,
+                use_selection=True,
+                use_visible=False,
+                use_active_collection=False,
+                global_scale=1.0,
+                apply_unit_scale=True,
+                apply_scale_options="FBX_SCALE_NONE",
+                use_space_transform=True,
+                bake_space_transform=False,
+                object_types={"LIGHT", "MESH", "ARMATURE", "OTHER"},
+                use_mesh_modifiers=True,
+                mesh_smooth_type="FACE",
+                colors_type="SRGB",
+                use_triangles=True,
+                path_mode="COPY",
+                embed_textures=True,
+                batch_mode="OFF",
+                axis_forward="-Z",
+                axis_up="Y",
+            )
+            if result != {"FINISHED"}:
+                raise RuntimeError("Exporter did not finish successfully")
+        except Exception as exc:
+            self.report({"ERROR"}, f"{_t('gltf_export_failed', context)}: {exc}")
+            return {"CANCELLED"}
+
+        self.report({"INFO"}, _t("gltf_export_completed", context).format(export_path))
+        return {"FINISHED"}
+
+
+class DAT_OP_StlExport(Operator):
+    bl_idname = "dat.export_stl"
+    bl_label = "Export STL"
+    bl_description = "Export selected objects to STL with DATools export control"
+    bl_options = {"REGISTER"}
+    export_control_fields = ("check_materials_before_export",)
+
+    filepath: StringProperty(name="File", subtype="FILE_PATH")
+    filter_glob: StringProperty(default="*.stl", options={"HIDDEN"})
+    check_materials_before_export: BoolProperty(name="Check Materials Before Export", default=True)
+    skip_export_control: BoolProperty(default=False, options={"HIDDEN"})
+
+    def invoke(self, context, event):
+        if _warn_for_export_materials_if_needed(self, context, context.selected_objects):
+            return {"CANCELLED"}
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def draw(self, context):
+        self.layout.prop(self, "check_materials_before_export")
+
+    def execute(self, context):
+        if not self.filepath:
+            self.report({"ERROR"}, _t("gltf_no_file_selected", context))
+            return {"CANCELLED"}
+        if _warn_for_export_materials_if_needed(self, context, context.selected_objects):
+            return {"CANCELLED"}
+
+        export_path = _ensure_file_extension(self.filepath, ".stl")
+        try:
+            result = _call_first_available_operator(
+                ("wm.stl_export", "export_mesh.stl"),
+                filepath=export_path,
+                use_selection=True,
+                global_scale=1.0,
+                use_scene_unit=False,
+                ascii=False,
+                use_mesh_modifiers=True,
+                batch_mode="OFF",
+                axis_forward="Y",
+                axis_up="Z",
+            )
+            if result != {"FINISHED"}:
+                raise RuntimeError("Exporter did not finish successfully")
+        except Exception as exc:
+            self.report({"ERROR"}, f"{_t('gltf_export_failed', context)}: {exc}")
+            return {"CANCELLED"}
+
+        self.report({"INFO"}, _t("gltf_export_completed", context).format(export_path))
+        return {"FINISHED"}
+
+
 class DAT_OP_GltfToggleCollision(Operator):
     bl_idname = "dat.toggle_collision"
     bl_label = "Toggle Collision"
@@ -476,9 +739,43 @@ class DAT_OP_GltfExport(Operator):
     profile_new_name: StringProperty(name="Profile Name", default="")
     skip_export_control: BoolProperty(default=False, options={"HIDDEN"})
 
+    def material_check_objects(self, context):
+        if self.export_scope == "SELECTION":
+            base_objects = context.selected_objects[:]
+        elif self.export_scope == "VISIBLE":
+            base_objects = [obj for obj in context.view_layer.objects if obj.visible_get()]
+        else:
+            base_objects = list(context.view_layer.objects)
+
+        objects = []
+        for obj in base_objects:
+            obj_type = obj.type
+            if obj_type == "CAMERA" and not self.include_cameras:
+                continue
+            if obj_type == "EMPTY" and not self.include_empties:
+                continue
+            if obj_type == "LIGHT":
+                if self.lights_mode == "NONE":
+                    continue
+                light_type = getattr(obj.data, "type", None)
+                if self.lights_mode == "SUN_ONLY" and light_type != "SUN":
+                    continue
+                if self.exclude_unsupported_lights and light_type == "AREA":
+                    continue
+            objects.append(obj)
+        return objects
+
     def invoke(self, context, event):
         prefs = _addon_preferences(context)
         _apply_profile_to_operator(self, prefs)
+        if _warn_for_export_materials_if_needed(
+            self,
+            context,
+            self.material_check_objects(context),
+            self.use_prefix_for_collisions,
+            self.use_property_for_collisions,
+        ):
+            return {"CANCELLED"}
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
@@ -537,7 +834,6 @@ class DAT_OP_GltfExport(Operator):
 
         prefs = _addon_preferences(context)
         export_path = _ensure_extension(self.filepath, self.export_format_ui)
-        depsgraph = context.evaluated_depsgraph_get()
         prev_selection = context.selected_objects[:]
         prev_active = context.view_layer.objects.active
 
@@ -548,6 +844,16 @@ class DAT_OP_GltfExport(Operator):
         else:
             base_objects = list(context.view_layer.objects)
 
+        if _warn_for_export_materials_if_needed(
+            self,
+            context,
+            self.material_check_objects(context),
+            self.use_prefix_for_collisions,
+            self.use_property_for_collisions,
+        ):
+            return {"CANCELLED"}
+
+        depsgraph = context.evaluated_depsgraph_get()
         export_objects = []
         temp_objects = []
         triangulate_modifiers = []
@@ -616,23 +922,6 @@ class DAT_OP_GltfExport(Operator):
                     export_objects.append(new_obj)
                 continue
             export_objects.append(obj)
-
-        prefix = prefs.gltf_collision_prefix
-        if (
-            self.check_materials_before_export
-            and not self.skip_export_control
-            and self.export_materials == "EXPORT"
-        ):
-            invalid_objects, invalid_nodes, warning_nodes = _check_material_export_problems(
-                export_objects,
-                prefix,
-                self.use_prefix_for_collisions,
-                self.use_property_for_collisions,
-            )
-            if invalid_objects:
-                _store_export_control_warning(self, context, invalid_objects, invalid_nodes, warning_nodes)
-                bpy.ops.dat.gltf_export_control_warning("INVOKE_DEFAULT")
-                return {"CANCELLED"}
 
         if self.triangulate_all:
             for obj in export_objects:
@@ -805,8 +1094,8 @@ class DAT_OP_GltfExport(Operator):
         return {"FINISHED"}
 
 
-class DAT_OP_GltfExportControlWarning(Operator):
-    bl_idname = "dat.gltf_export_control_warning"
+class DAT_OP_ExportControlWarning(Operator):
+    bl_idname = "dat.export_control_warning"
     bl_label = "Export Warning"
     bl_description = "Warn before exporting materials that may not be supported by Dungeon Alchemist"
     bl_options = {"REGISTER"}
@@ -818,28 +1107,28 @@ class DAT_OP_GltfExportControlWarning(Operator):
         return bpy.ops.wm.call_menu_pie(name=EXPORT_CONTROL_WARNING_PIE_ID)
 
 
-class DAT_MT_GltfExportControlWarningPie(Menu):
+class DAT_MT_ExportControlWarningPie(Menu):
     bl_idname = EXPORT_CONTROL_WARNING_PIE_ID
     bl_label = "Continue?"
 
     def draw(self, context):
         layout = self.layout.menu_pie()
-        layout.operator("dat.gltf_export_control_cancel", text=_t("gltf_export_control_cancel_button", context), icon="CANCEL")
-        layout.operator("dat.gltf_export_control_continue", text=_t("gltf_export_control_continue_button", context), icon="CHECKMARK")
-        layout.operator("dat.gltf_tag_material_warnings", text=_t("gltf_export_control_tag_warnings", context), icon="ERROR")
+        layout.operator("dat.export_control_cancel", text=_t("export_control_cancel_button", context), icon="CANCEL")
+        layout.operator("dat.export_control_continue", text=_t("export_control_continue_button", context), icon="CHECKMARK")
+        layout.operator("dat.tag_material_warnings", text=_t("export_control_tag_warnings", context), icon="ERROR")
 
         box = layout.box()
         box.label(text=EXPORT_CONTROL_STATE["warning_title"], icon="ERROR")
         box.label(text=EXPORT_CONTROL_STATE["warning_message"], icon="NODE")
         if EXPORT_CONTROL_STATE["warning_details"]:
             box.label(text=EXPORT_CONTROL_STATE["warning_details"], icon="INFO")
-        box.label(text=_t("gltf_export_control_continue_hint", context), icon="INFO")
+        box.label(text=_t("export_control_continue_hint", context), icon="INFO")
 
-        layout.operator("wm.console_toggle", text=_t("gltf_export_control_open_console", context), icon="CONSOLE")
+        layout.operator("wm.console_toggle", text=_t("export_control_open_console", context), icon="CONSOLE")
 
 
-class DAT_OP_GltfExportControlContinue(Operator):
-    bl_idname = "dat.gltf_export_control_continue"
+class DAT_OP_ExportControlContinue(Operator):
+    bl_idname = "dat.export_control_continue"
     bl_label = "Continue Export"
     bl_description = "Continue the pending DATools export"
     bl_options = {"REGISTER"}
@@ -848,8 +1137,8 @@ class DAT_OP_GltfExportControlContinue(Operator):
         return _continue_pending_export(context, self.report)
 
 
-class DAT_OP_GltfExportControlCancel(Operator):
-    bl_idname = "dat.gltf_export_control_cancel"
+class DAT_OP_ExportControlCancel(Operator):
+    bl_idname = "dat.export_control_cancel"
     bl_label = "Cancel Export"
     bl_description = "Cancel the pending DATools export"
     bl_options = {"REGISTER"}
@@ -859,8 +1148,8 @@ class DAT_OP_GltfExportControlCancel(Operator):
         return {"FINISHED"}
 
 
-class DAT_OP_GltfTagMaterialWarnings(Operator):
-    bl_idname = "dat.gltf_tag_material_warnings"
+class DAT_OP_TagMaterialWarnings(Operator):
+    bl_idname = "dat.tag_material_warnings"
     bl_label = "Tag Warnings"
     bl_description = "Color unsupported material nodes red"
     bl_options = {"REGISTER", "UNDO"}
@@ -888,12 +1177,10 @@ class DAT_OP_GltfTagMaterialWarnings(Operator):
                 continue
 
         if tagged:
-            self.report({"INFO"}, _t("gltf_export_control_tagged", context).format(tagged))
-            if EXPORT_CONTROL_STATE.get("pending_kwargs"):
-                bpy.ops.wm.call_menu_pie(name=EXPORT_CONTROL_WARNING_PIE_ID)
+            self.report({"INFO"}, _t("export_control_tagged", context).format(tagged))
             return {"FINISHED"}
 
-        self.report({"WARNING"}, _t("gltf_export_control_no_nodes_to_tag", context))
+        self.report({"WARNING"}, _t("export_control_no_nodes_to_tag", context))
         return {"CANCELLED"}
 
 
@@ -943,8 +1230,15 @@ def draw_gltf_io_panel(layout, context):
 
     actions_box = layout.box()
     actions_box.label(text=_t("gltf_quick_actions_header", context), icon="NETWORK_DRIVE")
+    actions_box.label(text=_t("dat_imports_header", context), icon="IMPORT")
     actions_box.operator("dat.import_gltf", text=_t("gltf_import_label", context), icon="IMPORT")
+    actions_box.operator("dat.import_fbx", text=_t("fbx_import_label", context), icon="IMPORT")
+    actions_box.operator("dat.import_stl", text=_t("stl_import_label", context), icon="IMPORT")
+    actions_box.operator("dat.import_usdz", text=_t("usdz_import_label", context), icon="IMPORT")
+    actions_box.label(text=_t("dat_exports_header", context), icon="EXPORT")
     actions_box.operator("dat.export_gltf", text=_t("gltf_export_label", context), icon="EXPORT")
+    actions_box.operator("dat.export_fbx", text=_t("fbx_export_label", context), icon="EXPORT")
+    actions_box.operator("dat.export_stl", text=_t("stl_export_label", context), icon="EXPORT")
 
     profile_box = layout.box()
     profile_box.label(text=_t("gltf_export_profile_header", context), icon="PRESET")
@@ -975,3 +1269,23 @@ def dat_gltf_export_menu(self, context):
 
 def dat_gltf_import_menu(self, context):
     self.layout.operator("dat.import_gltf", text=_t("gltf_import_menu_label", context))
+
+
+def dat_fbx_export_menu(self, context):
+    self.layout.operator("dat.export_fbx", text=_t("fbx_export_menu_label", context))
+
+
+def dat_fbx_import_menu(self, context):
+    self.layout.operator("dat.import_fbx", text=_t("fbx_import_menu_label", context))
+
+
+def dat_stl_export_menu(self, context):
+    self.layout.operator("dat.export_stl", text=_t("stl_export_menu_label", context))
+
+
+def dat_stl_import_menu(self, context):
+    self.layout.operator("dat.import_stl", text=_t("stl_import_menu_label", context))
+
+
+def dat_usdz_import_menu(self, context):
+    self.layout.operator("dat.import_usdz", text=_t("usdz_import_menu_label", context))

@@ -74,19 +74,29 @@ from .operators.custom_scripts import (
     unregister_custom_scripts,
 )
 from .operators.gltf_da import (
-    DAT_MT_GltfExportControlWarningPie,
+    DAT_MT_ExportControlWarningPie,
+    DAT_OP_FbxExport,
+    DAT_OP_FbxImport,
+    DAT_OP_ExportControlCancel,
+    DAT_OP_ExportControlContinue,
+    DAT_OP_ExportControlWarning,
     DAT_OP_GltfExport,
-    DAT_OP_GltfExportControlCancel,
-    DAT_OP_GltfExportControlContinue,
-    DAT_OP_GltfExportControlWarning,
     DAT_OP_GltfImport,
     DAT_OP_GltfProfileDelete,
-    DAT_OP_GltfTagMaterialWarnings,
     DAT_OP_GltfToggleCollision,
+    DAT_OP_StlExport,
+    DAT_OP_StlImport,
+    DAT_OP_TagMaterialWarnings,
+    DAT_OP_UsdzImport,
     DEFAULT_COLLISION_PREFIX,
     PROFILE_DEFAULT_NAME,
+    dat_fbx_export_menu,
+    dat_fbx_import_menu,
     dat_gltf_export_menu,
     dat_gltf_import_menu,
+    dat_stl_export_menu,
+    dat_stl_import_menu,
+    dat_usdz_import_menu,
     draw_gltf_settings,
     get_gltf_profile_items,
     update_gltf_active_profile,
@@ -229,12 +239,17 @@ classes = (
     DAT_OP_ShrinkIt,
     DAT_OP_MapIt,
     DAT_OP_GltfImport,
+    DAT_OP_FbxImport,
+    DAT_OP_StlImport,
+    DAT_OP_UsdzImport,
     DAT_OP_GltfExport,
-    DAT_OP_GltfExportControlWarning,
-    DAT_MT_GltfExportControlWarningPie,
-    DAT_OP_GltfExportControlContinue,
-    DAT_OP_GltfExportControlCancel,
-    DAT_OP_GltfTagMaterialWarnings,
+    DAT_OP_FbxExport,
+    DAT_OP_StlExport,
+    DAT_OP_ExportControlWarning,
+    DAT_MT_ExportControlWarningPie,
+    DAT_OP_ExportControlContinue,
+    DAT_OP_ExportControlCancel,
+    DAT_OP_TagMaterialWarnings,
     DAT_OP_GltfToggleCollision,
     DAT_OP_GltfProfileDelete,
     DAT_MainPanelState,
@@ -256,13 +271,23 @@ def register():
     register_scene_properties()
     register_enabled_custom_scripts()
     bpy.types.TOPBAR_MT_file_export.append(dat_gltf_export_menu)
+    bpy.types.TOPBAR_MT_file_export.append(dat_fbx_export_menu)
+    bpy.types.TOPBAR_MT_file_export.append(dat_stl_export_menu)
     bpy.types.TOPBAR_MT_file_import.append(dat_gltf_import_menu)
+    bpy.types.TOPBAR_MT_file_import.append(dat_fbx_import_menu)
+    bpy.types.TOPBAR_MT_file_import.append(dat_stl_import_menu)
+    bpy.types.TOPBAR_MT_file_import.append(dat_usdz_import_menu)
 
 
 def unregister():
     try:
         bpy.types.TOPBAR_MT_file_export.remove(dat_gltf_export_menu)
+        bpy.types.TOPBAR_MT_file_export.remove(dat_fbx_export_menu)
+        bpy.types.TOPBAR_MT_file_export.remove(dat_stl_export_menu)
         bpy.types.TOPBAR_MT_file_import.remove(dat_gltf_import_menu)
+        bpy.types.TOPBAR_MT_file_import.remove(dat_fbx_import_menu)
+        bpy.types.TOPBAR_MT_file_import.remove(dat_stl_import_menu)
+        bpy.types.TOPBAR_MT_file_import.remove(dat_usdz_import_menu)
     except Exception:
         pass
 
