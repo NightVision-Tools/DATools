@@ -3,8 +3,8 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick",
-    "version": (1, 9, 5),
-    "blender": (5, 1, 0),
+    "version": (1, 9, 6),
+    "blender": (5, 1, 2),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
     "category": "3D View",
@@ -73,6 +73,19 @@ from .operators.custom_scripts import (
     register_enabled_custom_scripts,
     unregister_custom_scripts,
 )
+from .operators.gltf_da import (
+    DAT_OP_GltfExport,
+    DAT_OP_GltfImport,
+    DAT_OP_GltfProfileDelete,
+    DAT_OP_GltfToggleCollision,
+    DEFAULT_COLLISION_PREFIX,
+    PROFILE_DEFAULT_NAME,
+    dat_gltf_export_menu,
+    dat_gltf_import_menu,
+    draw_gltf_settings,
+    get_gltf_profile_items,
+    update_gltf_active_profile,
+)
 
 
 class DAToolsPreferences(bpy.types.AddonPreferences):
@@ -84,6 +97,26 @@ class DAToolsPreferences(bpy.types.AddonPreferences):
         default="ENGLISH",
     )
     custom_scripts: bpy.props.CollectionProperty(type=DAT_CustomScriptItem)
+    gltf_collision_prefix: bpy.props.StringProperty(
+        name="Collision Prefix",
+        description="Objects whose names start with this prefix are treated as Dungeon Alchemist collision objects",
+        default=DEFAULT_COLLISION_PREFIX,
+    )
+    gltf_active_profile_name: bpy.props.StringProperty(
+        name="Active GLTF Profile Name",
+        default=PROFILE_DEFAULT_NAME,
+    )
+    gltf_active_profile: bpy.props.EnumProperty(
+        name="Active GLTF Profile",
+        description="Choose the DATools GLTF export profile",
+        items=get_gltf_profile_items,
+        update=update_gltf_active_profile,
+    )
+    gltf_profiles_json: bpy.props.StringProperty(
+        name="GLTF Profiles JSON",
+        description="Internal DATools storage for GLTF export profiles",
+        default="",
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -103,6 +136,7 @@ class DAToolsPreferences(bpy.types.AddonPreferences):
         row.operator("dat.select_language", text=translate("language_option_french", context)).language = "FRENCH"
 
         draw_custom_scripts_settings(layout, context)
+        draw_gltf_settings(layout, context)
         _draw_icon_viewer_preferences(layout, context)
 
 
@@ -189,6 +223,10 @@ classes = (
     DAT_OP_Mirrorit,
     DAT_OP_ShrinkIt,
     DAT_OP_MapIt,
+    DAT_OP_GltfImport,
+    DAT_OP_GltfExport,
+    DAT_OP_GltfToggleCollision,
+    DAT_OP_GltfProfileDelete,
     DAT_MainPanelState,
     DAT_OT_MainPanelSelect,
     DAT_OT_MainPanelExpand,
@@ -207,9 +245,17 @@ def register():
     register_translations()
     register_scene_properties()
     register_enabled_custom_scripts()
+    bpy.types.TOPBAR_MT_file_export.append(dat_gltf_export_menu)
+    bpy.types.TOPBAR_MT_file_import.append(dat_gltf_import_menu)
 
 
 def unregister():
+    try:
+        bpy.types.TOPBAR_MT_file_export.remove(dat_gltf_export_menu)
+        bpy.types.TOPBAR_MT_file_import.remove(dat_gltf_import_menu)
+    except Exception:
+        pass
+
     unregister_custom_scripts()
     unregister_translations()
 

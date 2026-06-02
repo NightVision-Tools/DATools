@@ -6,6 +6,7 @@ from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProper
 
 from .. import dictionary
 from ..operators.custom_scripts import active_custom_scripts, draw_custom_script, script_icon
+from ..operators.gltf_da import draw_gltf_io_panel
 
 DAT_LOGO_ICON = "DAT_Logo"
 DOCS_BASE_URL = "https://1nightvision1.github.io/DATools_Doc/"
@@ -782,7 +783,7 @@ def _draw_panel_content(layout, context, identifier):
     elif identifier == "BLENDER":
         _label_with_panel_icon(col, dictionary.translate("menu_blender", context), DAT_LOGO_ICON)
     elif identifier == "IO":
-        col.label(text=dictionary.translate("menu_io", context), icon="NETWORK_DRIVE")
+        draw_gltf_io_panel(col, context)
     elif identifier == "TEXTURE":
         _draw_texture_panel(col, context)
     elif identifier == "LIGHT":
