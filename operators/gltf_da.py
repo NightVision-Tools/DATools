@@ -6,7 +6,7 @@ import unicodedata
 
 import bpy
 from bpy.props import BoolProperty, EnumProperty, StringProperty
-from bpy.types import Operator
+from bpy.types import Menu, Operator
 from mathutils import Vector
 
 from .. import dictionary
@@ -15,11 +15,29 @@ from .. import dictionary
 COLLISION_OBJECT_KEY = "is_collision"
 DEFAULT_COLLISION_PREFIX = "COL_"
 PROFILE_DEFAULT_NAME = "Default"
+EXPORT_CONTROL_STATE = {
+    "pending_kwargs": None,
+    "warning_title": "",
+    "warning_message": "",
+    "warning_details": "",
+    "warning_nodes": [],
+}
+EXPORT_CONTROL_WARNING_PIE_ID = "DAT_MT_gltf_export_control_warning_pie"
+SUPPORTED_EXPORT_MATERIAL_NODE_TYPES = {
+    "BSDF_PRINCIPLED",
+    "TEX_IMAGE",
+    "OUTPUT_MATERIAL",
+    "NORMAL_MAP",
+    "TEX_COORD",
+    "REROUTE",
+    "MAPPING",
+}
 PROFILE_FIELDS = (
     "export_format_ui",
     "export_scope",
     "apply_modifiers",
     "export_materials",
+    "check_materials_before_export",
     "triangulate_all",
     "convert_curves_to_mesh",
     "convert_text_to_mesh",
@@ -62,6 +80,92 @@ def _world_bbox(obj):
     min_v = Vector((min(c.x for c in corners), min(c.y for c in corners), min(c.z for c in corners)))
     max_v = Vector((max(c.x for c in corners), max(c.y for c in corners), max(c.z for c in corners)))
     return min_v, max_v
+
+
+def _is_collision_object(obj, prefix="", use_prefix=True, use_property=True):
+    by_prefix = bool(use_prefix and prefix and obj.name.startswith(prefix))
+    by_property = bool(use_property and obj.get(COLLISION_OBJECT_KEY))
+    return by_prefix or by_property
+
+
+def _format_name_list(names, max_items=6):
+    shown = names[:max_items]
+    suffix = "" if len(names) <= max_items else ", +{}".format(len(names) - max_items)
+    return ", ".join(shown) + suffix
+
+
+def _check_material_export_problems(objects, prefix="", use_prefix=True, use_property=True):
+    invalid_objects = []
+    invalid_nodes = set()
+    warning_nodes = []
+
+    for obj in objects:
+        if _is_collision_object(obj, prefix, use_prefix, use_property):
+            continue
+        if not hasattr(obj, "material_slots"):
+            continue
+
+        has_error = False
+        for slot in obj.material_slots:
+            material = slot.material
+            if material is None or not material.use_nodes or material.node_tree is None:
+                continue
+
+            for node in material.node_tree.nodes:
+                if node.type not in SUPPORTED_EXPORT_MATERIAL_NODE_TYPES:
+                    has_error = True
+                    invalid_nodes.add(node.type.lower())
+                    warning_nodes.append(node)
+
+        if has_error:
+            invalid_objects.append(obj.name)
+
+    return sorted(invalid_objects), sorted(invalid_nodes), warning_nodes
+
+
+def _store_export_control_warning(operator, context, invalid_objects, invalid_nodes, warning_nodes):
+    EXPORT_CONTROL_STATE["pending_kwargs"] = {
+        key: getattr(operator, key)
+        for key in PROFILE_FIELDS
+        if hasattr(operator, key)
+    }
+    EXPORT_CONTROL_STATE["pending_kwargs"].update(
+        {
+            "filepath": operator.filepath,
+            "filter_glob": operator.filter_glob,
+            "profile_save_as": operator.profile_save_as,
+            "profile_new_name": operator.profile_new_name,
+            "skip_export_control": True,
+        }
+    )
+    EXPORT_CONTROL_STATE["warning_title"] = _t("gltf_export_control_warning_title", context)
+    EXPORT_CONTROL_STATE["warning_message"] = _t("gltf_export_control_warning_objects", context).format(
+        _format_name_list(invalid_objects)
+    )
+    EXPORT_CONTROL_STATE["warning_details"] = _t("gltf_export_control_warning_nodes", context).format(
+        _format_name_list(invalid_nodes)
+    )
+    EXPORT_CONTROL_STATE["warning_nodes"] = warning_nodes
+
+
+def _clear_export_control_state():
+    EXPORT_CONTROL_STATE["pending_kwargs"] = None
+    EXPORT_CONTROL_STATE["warning_title"] = ""
+    EXPORT_CONTROL_STATE["warning_message"] = ""
+    EXPORT_CONTROL_STATE["warning_details"] = ""
+    EXPORT_CONTROL_STATE["warning_nodes"] = []
+
+
+def _continue_pending_export(context, reporter=None):
+    pending_kwargs = EXPORT_CONTROL_STATE.get("pending_kwargs")
+    if not pending_kwargs:
+        if reporter is not None:
+            reporter({"ERROR"}, _t("gltf_export_control_missing_pending", context))
+        return {"CANCELLED"}
+
+    result = bpy.ops.dat.export_gltf("EXEC_DEFAULT", **pending_kwargs)
+    _clear_export_control_state()
+    return result
 
 
 def _scene_has_animations(context):
@@ -165,6 +269,7 @@ def default_gltf_profile_dict():
         "export_scope": "SELECTION",
         "apply_modifiers": True,
         "export_materials": "EXPORT",
+        "check_materials_before_export": True,
         "triangulate_all": True,
         "convert_curves_to_mesh": True,
         "convert_text_to_mesh": True,
@@ -328,6 +433,7 @@ class DAT_OP_GltfExport(Operator):
         ],
         default="EXPORT",
     )
+    check_materials_before_export: BoolProperty(name="Check Materials Before Export", default=True)
     unicode_policy: EnumProperty(
         name="Unicode",
         description="How to write non-ASCII characters into JSON files",
@@ -368,6 +474,7 @@ class DAT_OP_GltfExport(Operator):
     write_collision_manifest: BoolProperty(name="Write Collision Manifest (.json)", default=False)
     profile_save_as: BoolProperty(name="Save as New Profile", default=False)
     profile_new_name: StringProperty(name="Profile Name", default="")
+    skip_export_control: BoolProperty(default=False, options={"HIDDEN"})
 
     def invoke(self, context, event):
         prefs = _addon_preferences(context)
@@ -385,6 +492,7 @@ class DAT_OP_GltfExport(Operator):
         box.prop(self, "export_scope")
         box.prop(self, "apply_modifiers")
         box.prop(self, "export_materials")
+        box.prop(self, "check_materials_before_export")
         box.prop(self, "unicode_policy")
 
         geo = layout.box()
@@ -509,6 +617,23 @@ class DAT_OP_GltfExport(Operator):
                 continue
             export_objects.append(obj)
 
+        prefix = prefs.gltf_collision_prefix
+        if (
+            self.check_materials_before_export
+            and not self.skip_export_control
+            and self.export_materials == "EXPORT"
+        ):
+            invalid_objects, invalid_nodes, warning_nodes = _check_material_export_problems(
+                export_objects,
+                prefix,
+                self.use_prefix_for_collisions,
+                self.use_property_for_collisions,
+            )
+            if invalid_objects:
+                _store_export_control_warning(self, context, invalid_objects, invalid_nodes, warning_nodes)
+                bpy.ops.dat.gltf_export_control_warning("INVOKE_DEFAULT")
+                return {"CANCELLED"}
+
         if self.triangulate_all:
             for obj in export_objects:
                 if obj.type == "MESH":
@@ -617,14 +742,17 @@ class DAT_OP_GltfExport(Operator):
                 self.report({"WARNING"}, f"{_t('gltf_unicode_failed', context)}: {exc}")
 
         collisions = []
-        prefix = prefs.gltf_collision_prefix if self.use_prefix_for_collisions else ""
+        manifest_prefix = prefs.gltf_collision_prefix if self.use_prefix_for_collisions else ""
         if self.use_prefix_for_collisions or self.use_property_for_collisions:
             for obj in bpy.data.objects:
                 if obj.type not in {"MESH", "CURVE", "SURFACE", "META", "FONT"}:
                     continue
-                by_prefix = prefix and obj.name.startswith(prefix)
-                by_property = bool(obj.get(COLLISION_OBJECT_KEY)) if self.use_property_for_collisions else False
-                if by_prefix or by_property:
+                if _is_collision_object(
+                    obj,
+                    manifest_prefix,
+                    self.use_prefix_for_collisions,
+                    self.use_property_for_collisions,
+                ):
                     collisions.append(obj)
 
         if self.write_collision_manifest and collisions:
@@ -636,14 +764,19 @@ class DAT_OP_GltfExport(Operator):
                 payload.append(
                     {
                         "name": obj.name,
-                        "extrasFlag": bool(obj.get(COLLISION_OBJECT_KEY) or obj.name.startswith(prefix)),
+                        "extrasFlag": _is_collision_object(
+                            obj,
+                            manifest_prefix,
+                            self.use_prefix_for_collisions,
+                            self.use_property_for_collisions,
+                        ),
                         "bboxMin": [bbox_min.x, bbox_min.y, bbox_min.z],
                         "bboxMax": [bbox_max.x, bbox_max.y, bbox_max.z],
                     }
                 )
             manifest_data = {
                 "collisionPropertyKey": COLLISION_OBJECT_KEY,
-                "prefixUsed": prefix,
+                "prefixUsed": manifest_prefix,
                 "objects": payload,
             }
             manifest_data = _normalize_json_strings(manifest_data, self.unicode_policy)
@@ -670,6 +803,98 @@ class DAT_OP_GltfExport(Operator):
 
         self.report({"INFO"}, _t("gltf_export_completed", context).format(export_path))
         return {"FINISHED"}
+
+
+class DAT_OP_GltfExportControlWarning(Operator):
+    bl_idname = "dat.gltf_export_control_warning"
+    bl_label = "Export Warning"
+    bl_description = "Warn before exporting materials that may not be supported by Dungeon Alchemist"
+    bl_options = {"REGISTER"}
+
+    def invoke(self, context, event):
+        return bpy.ops.wm.call_menu_pie(name=EXPORT_CONTROL_WARNING_PIE_ID)
+
+    def execute(self, context):
+        return bpy.ops.wm.call_menu_pie(name=EXPORT_CONTROL_WARNING_PIE_ID)
+
+
+class DAT_MT_GltfExportControlWarningPie(Menu):
+    bl_idname = EXPORT_CONTROL_WARNING_PIE_ID
+    bl_label = "Continue?"
+
+    def draw(self, context):
+        layout = self.layout.menu_pie()
+        layout.operator("dat.gltf_export_control_cancel", text=_t("gltf_export_control_cancel_button", context), icon="CANCEL")
+        layout.operator("dat.gltf_export_control_continue", text=_t("gltf_export_control_continue_button", context), icon="CHECKMARK")
+        layout.operator("dat.gltf_tag_material_warnings", text=_t("gltf_export_control_tag_warnings", context), icon="ERROR")
+
+        box = layout.box()
+        box.label(text=EXPORT_CONTROL_STATE["warning_title"], icon="ERROR")
+        box.label(text=EXPORT_CONTROL_STATE["warning_message"], icon="NODE")
+        if EXPORT_CONTROL_STATE["warning_details"]:
+            box.label(text=EXPORT_CONTROL_STATE["warning_details"], icon="INFO")
+        box.label(text=_t("gltf_export_control_continue_hint", context), icon="INFO")
+
+        layout.operator("wm.console_toggle", text=_t("gltf_export_control_open_console", context), icon="CONSOLE")
+
+
+class DAT_OP_GltfExportControlContinue(Operator):
+    bl_idname = "dat.gltf_export_control_continue"
+    bl_label = "Continue Export"
+    bl_description = "Continue the pending DATools export"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        return _continue_pending_export(context, self.report)
+
+
+class DAT_OP_GltfExportControlCancel(Operator):
+    bl_idname = "dat.gltf_export_control_cancel"
+    bl_label = "Cancel Export"
+    bl_description = "Cancel the pending DATools export"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        _clear_export_control_state()
+        return {"FINISHED"}
+
+
+class DAT_OP_GltfTagMaterialWarnings(Operator):
+    bl_idname = "dat.gltf_tag_material_warnings"
+    bl_label = "Tag Warnings"
+    bl_description = "Color unsupported material nodes red"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        tagged = 0
+        seen = set()
+        for node in EXPORT_CONTROL_STATE.get("warning_nodes", []):
+            if node is None:
+                continue
+            try:
+                node_id = node.as_pointer()
+                if node_id in seen:
+                    continue
+                seen.add(node_id)
+                node.use_custom_color = True
+                node.color = (1.0, 0.05, 0.03)
+                node.select = True
+                if getattr(node, "id_data", None) is not None:
+                    node.id_data.nodes.active = node
+                tagged += 1
+            except ReferenceError:
+                continue
+            except Exception:
+                continue
+
+        if tagged:
+            self.report({"INFO"}, _t("gltf_export_control_tagged", context).format(tagged))
+            if EXPORT_CONTROL_STATE.get("pending_kwargs"):
+                bpy.ops.wm.call_menu_pie(name=EXPORT_CONTROL_WARNING_PIE_ID)
+            return {"FINISHED"}
+
+        self.report({"WARNING"}, _t("gltf_export_control_no_nodes_to_tag", context))
+        return {"CANCELLED"}
 
 
 class DAT_OP_GltfProfileDelete(Operator):
