@@ -7,6 +7,193 @@
       "id": "DATools",
       "name": "DATools",
       "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.10.0",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick, Dallasrt",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://1nightvision1.github.io/DATools_Doc/",
+      "tags": [
+        "3D View",
+        "Import-Export",
+        "Lighting",
+        "Material",
+        "Modeling",
+        "Mesh",
+        "Object",
+        "Scene",
+        "UV"
+      ],
+      "archive_url": "./DATools-1.10.0.zip",
+      "archive_size": 65276,
+      "archive_hash": "sha256:222264036000ae910c7641e2dd66f44c473d8d9eb91a1cd289b5a857a16fc20b"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.6.0",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "copyright": [
+        "2026 Tinazzi Patrick"
+      ],
+      "archive_url": "./DATools-1.6.0.zip",
+      "archive_size": 24029,
+      "archive_hash": "sha256:feeb9f2b01c1a1a8991092d0da8fc3aad3f1d19eacc8b7fcebcd67739e6a24f0"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.6.7",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick,",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://1nightvision1.github.io/DATools_Doc/",
+      "tags": [
+        "3D View",
+        "Import-Export",
+        "Lighting",
+        "Material",
+        "Modeling",
+        "Mesh",
+        "Object",
+        "Scene",
+        "UV"
+      ],
+      "archive_url": "./DATools-1.6.7.zip",
+      "archive_size": 25570,
+      "archive_hash": "sha256:7b26e659936f57cc5b2ee6da24c9c31f69d5029f7d86cf8dfe513e49c57cf476"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.6.8",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick,",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://1nightvision1.github.io/DATools_Doc/",
+      "tags": [
+        "3D View",
+        "Import-Export",
+        "Lighting",
+        "Material",
+        "Modeling",
+        "Mesh",
+        "Object",
+        "Scene",
+        "UV"
+      ],
+      "archive_url": "./DATools-1.6.8.zip",
+      "archive_size": 45486,
+      "archive_hash": "sha256:3d01ab82dd16a9195d376ba1ed5d2757b1e9441d359d21c7b7d85efa54eb0127"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.7.0",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick, Dallasrt",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://1nightvision1.github.io/DATools_Doc/",
+      "tags": [
+        "3D View",
+        "Import-Export",
+        "Lighting",
+        "Material",
+        "Modeling",
+        "Mesh",
+        "Object",
+        "Scene",
+        "UV"
+      ],
+      "archive_url": "./DATools-1.7.0.zip",
+      "archive_size": 47379,
+      "archive_hash": "sha256:8a7fce783c005821ae4dcefcac8d7b9cef8933fac9eb2d1303b359ac9f8a603a"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.9.0",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick, Dallasrt",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://1nightvision1.github.io/DATools_Doc/",
+      "tags": [
+        "3D View",
+        "Import-Export",
+        "Lighting",
+        "Material",
+        "Modeling",
+        "Mesh",
+        "Object",
+        "Scene",
+        "UV"
+      ],
+      "archive_url": "./DATools-1.9.0.zip",
+      "archive_size": 53316,
+      "archive_hash": "sha256:0ae7ba4bdf682fcc8545f8f145cb58cedd8661a814cb2101249b7298f02840f7"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
+      "version": "1.9.1",
+      "type": "add-on",
+      "maintainer": "Tinazzi Patrick, Dallasrt",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "website": "https://1nightvision1.github.io/DATools_Doc/",
+      "tags": [
+        "3D View",
+        "Import-Export",
+        "Lighting",
+        "Material",
+        "Modeling",
+        "Mesh",
+        "Object",
+        "Scene",
+        "UV"
+      ],
+      "archive_url": "./DATools-1.9.1.zip",
+      "archive_size": 51926,
+      "archive_hash": "sha256:32787120567dda577e6e3fb678f79efe3041e90902501112400102f437f3d8cf"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "DATools",
+      "name": "DATools",
+      "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
       "version": "1.9.5",
       "type": "add-on",
       "maintainer": "Tinazzi Patrick, Dallasrt",
