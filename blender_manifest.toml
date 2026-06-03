@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "DATools"
-version = "1.10.0"
+version = "1.10.1"
 name = "DATools"
 tagline = "A set of tools for the DungeonAlchemist™ import pipeline"
 maintainer = "Tinazzi Patrick, Dallasrt"
@@ -55,8 +55,8 @@ license = [
 # # Keep this a single short sentence without a period (.) at the end.
 # # For longer explanations use the documentation or detail page.
 #
-# [permissions]
-# network = "Need to sync motion-capture data to server"
+[permissions]
+network = "Open DATools online documentation from help buttons"
 files = "Import/export from/to disk"
 # clipboard = "Copy and paste bone transforms"
 

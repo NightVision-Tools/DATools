@@ -1,3 +1,8 @@
+import bpy
+from bpy.props import StringProperty
+from bpy.types import Operator
+
+
 DOCS_BASE_URL = "https://1nightvision1.github.io/DATools_Doc/"
 DOC_PATHS = {
     "about": "About/",
@@ -17,6 +22,22 @@ DOC_PATHS = {
 }
 
 
+class DAT_OT_OpenDocs(Operator):
+    bl_idname = "dat.open_docs"
+    bl_label = "Open DATools Documentation"
+    bl_description = "Open the DATools documentation"
+
+    path: StringProperty(default="")
+
+    def execute(self, context):
+        if not bpy.app.online_access:
+            self.report({"WARNING"}, "Online access is disabled in Blender preferences")
+            return {"CANCELLED"}
+
+        bpy.ops.wm.url_open(url=DOCS_BASE_URL + self.path)
+        return {"FINISHED"}
+
+
 def show_help_buttons(context):
     scene = getattr(context, "scene", None)
     state = getattr(scene, "dat_panel_state", None)
@@ -24,8 +45,8 @@ def show_help_buttons(context):
 
 
 def draw_help_button(layout, doc_path):
-    op = layout.operator("wm.url_open", text="", icon="QUESTION", emboss=False)
-    op.url = DOCS_BASE_URL + doc_path
+    op = layout.operator("dat.open_docs", text="", icon="QUESTION", emboss=False)
+    op.path = doc_path
     return op
 
 

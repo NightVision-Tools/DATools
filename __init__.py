@@ -3,32 +3,16 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick",
-    "version": (1, 10, 0),
-    "blender": (5, 1, 2),
+    "version": (1, 10, 1),
+    "blender": (4, 2, 0),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
     "category": "3D View",
 }
 
-import os
-import sys
-import types
-
 import bpy
 
-if __package__ is None:
-    addon_name = os.path.basename(os.path.dirname(__file__))
-    addon_path = os.path.dirname(__file__)
-    parent_dir = os.path.dirname(addon_path)
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
-    if addon_name not in sys.modules:
-        package_module = types.ModuleType(addon_name)
-        package_module.__path__ = [addon_path]
-        sys.modules[addon_name] = package_module
-    __package__ = addon_name
-
-ADDON_MODULE = __package__ or __name__
+ADDON_MODULE = __package__
 
 from . import dictionary
 
@@ -52,7 +36,7 @@ from .ui.main_panel import (
     register_scene_properties,
     unregister_custom_icons,
 )
-from .ui.help_buttons import DOC_PATHS, draw_doc_header
+from .ui.help_buttons import DAT_OT_OpenDocs, DOC_PATHS, draw_doc_header
 from .ui.select_language import DAT_OP_SelectLanguage
 from .operators.floor_it import DAT_OP_FloorIt
 from .operators.rez_it import DAT_OP_RezIt
@@ -165,10 +149,6 @@ class DAToolsPreferences(bpy.types.AddonPreferences):
 
 
 def _get_icon_viewer_addon(context):
-    addon = context.preferences.addons.get("bl_ext.blender_org.icon_viewer")
-    if addon is not None:
-        return addon
-
     for addon_key in context.preferences.addons.keys():
         if addon_key.endswith(".icon_viewer") or addon_key == "icon_viewer":
             addon = context.preferences.addons.get(addon_key)
@@ -189,7 +169,7 @@ def _draw_icon_viewer_preferences(layout, context):
 
     addon = _get_icon_viewer_addon(context)
     if addon is None:
-        box.label(text="Icon Viewer add-on not enabled: bl_ext.blender_org.icon_viewer", icon="INFO")
+        box.label(text="Icon Viewer add-on not enabled", icon="INFO")
         return
 
     prefs = addon.preferences
@@ -241,6 +221,7 @@ classes = (
     DAT_OT_CustomScriptMove,
     DAT_OT_CustomScriptDisplayToggle,
     DAT_OT_CustomScriptToggle,
+    DAT_OT_OpenDocs,
     DAT_OP_FloorIt,
     DAT_OP_RezIt,
     DAT_OP_ScaleIt,

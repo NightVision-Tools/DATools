@@ -1,14 +1,15 @@
+import hashlib
 import importlib.util
 import os
 import re
 import shutil
-import sys
 
 import bpy
 from bpy.props import BoolProperty, IntProperty, StringProperty
 from bpy.types import Operator, PropertyGroup
 from bpy_extras.io_utils import ImportHelper
 
+from .. import __package__ as ADDON_PACKAGE
 from .. import dictionary
 from ..ui.help_buttons import DOC_PATHS, draw_help_button, show_help_buttons
 
@@ -18,8 +19,8 @@ _valid_icon_ids = None
 
 
 def _scripts_dir():
-    addon_dir = os.path.dirname(os.path.dirname(__file__))
-    path = os.path.join(addon_dir, "custom_scripts")
+    user_dir = bpy.utils.extension_path_user(ADDON_PACKAGE, create=True)
+    path = os.path.join(user_dir, "custom_scripts")
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -86,7 +87,9 @@ def _copy_script(source_path, destination_path=None):
 
 def _module_name(path):
     normalized = os.path.normcase(os.path.abspath(path))
-    return "_datools_custom_script_{}".format(abs(hash(normalized)))
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+    module_base = _safe_name(path)
+    return "{}.custom_scripts_runtime.{}_{}".format(ADDON_PACKAGE, module_base, digest)
 
 
 def _get_addon_preferences(context=None):
@@ -163,12 +166,10 @@ def load_custom_script(item):
         raise ImportError("Cannot load script: {}".format(path))
 
     module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
     try:
         spec.loader.exec_module(module)
         _register_module(module)
     except Exception:
-        sys.modules.pop(module_name, None)
         raise
 
     _loaded_modules[key] = module
@@ -185,10 +186,7 @@ def unload_custom_script(item):
     if module is None:
         return
 
-    try:
-        _unregister_module(module)
-    finally:
-        sys.modules.pop(module.__name__, None)
+    _unregister_module(module)
 
 
 def register_enabled_custom_scripts(context=None):
