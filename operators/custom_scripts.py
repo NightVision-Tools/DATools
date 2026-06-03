@@ -251,7 +251,7 @@ def draw_custom_scripts_settings(layout, context):
         actions.alignment = "RIGHT"
         actions.operator_context = "INVOKE_DEFAULT"
         actions.operator("dat.custom_script_add", text="", icon="ADD")
-        draw_help_button(actions, DOC_PATHS["custom_scripts"])
+        draw_help_button(actions, DOC_PATHS["custom_scripts_manager"])
     else:
         header = box.row(align=True)
         header.label(text=dictionary.translate("custom_scripts_header", context), icon="FILE_SCRIPT")

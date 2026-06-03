@@ -44,6 +44,14 @@ from .operators.scale_it import DAT_OP_ScaleIt
 from .operators.mirror_it import DAT_OP_Mirrorit
 from .operators.shrink_it import DAT_OP_ShrinkIt
 from .operators.map_it import DAT_OP_MapIt
+from .operators.assets import (
+    DAT_OP_AssetAddCopy,
+    DAT_OP_AssetReimportReference,
+    DAT_OP_AssetRemoveReferences,
+    DAT_OP_AssetToggleReference,
+    register_asset_previews,
+    unregister_asset_previews,
+)
 from .operators.custom_scripts import (
     DAT_CustomScriptItem,
     DAT_OT_CustomScriptAdd,
@@ -127,7 +135,7 @@ class DAToolsPreferences(bpy.types.AddonPreferences):
             text=translate("addon_language_header", context),
             icon="WORLD",
             context=context,
-            doc_path=DOC_PATHS["preferences"],
+            doc_path=DOC_PATHS["language_preferences"],
         )
         language_box.label(
             text=str(translate("selected_language_text", context)).format(
@@ -165,7 +173,13 @@ def _draw_prop_if_exists(layout, data, prop_name):
 
 def _draw_icon_viewer_preferences(layout, context):
     box = layout.box()
-    box.label(text="Icon Viewer Preferences", icon="FILE_IMAGE")
+    draw_doc_header(
+        box,
+        text="Icon Viewer Preferences",
+        icon="FILE_IMAGE",
+        context=context,
+        doc_path=DOC_PATHS["preferences_icon_viewer"],
+    )
 
     addon = _get_icon_viewer_addon(context)
     if addon is None:
@@ -228,6 +242,10 @@ classes = (
     DAT_OP_Mirrorit,
     DAT_OP_ShrinkIt,
     DAT_OP_MapIt,
+    DAT_OP_AssetToggleReference,
+    DAT_OP_AssetReimportReference,
+    DAT_OP_AssetAddCopy,
+    DAT_OP_AssetRemoveReferences,
     DAT_OP_GltfImport,
     DAT_OP_FbxImport,
     DAT_OP_StlImport,
@@ -253,21 +271,35 @@ classes = (
 
 
 def register():
-    register_custom_icons()
+    registered_classes = []
 
-    for cls in classes:
-        bpy.utils.register_class(cls)
+    try:
+        register_custom_icons()
+        register_asset_previews()
 
-    register_translations()
-    register_scene_properties()
-    register_enabled_custom_scripts()
-    bpy.types.TOPBAR_MT_file_export.append(dat_gltf_export_menu)
-    bpy.types.TOPBAR_MT_file_export.append(dat_fbx_export_menu)
-    bpy.types.TOPBAR_MT_file_export.append(dat_stl_export_menu)
-    bpy.types.TOPBAR_MT_file_import.append(dat_gltf_import_menu)
-    bpy.types.TOPBAR_MT_file_import.append(dat_fbx_import_menu)
-    bpy.types.TOPBAR_MT_file_import.append(dat_stl_import_menu)
-    bpy.types.TOPBAR_MT_file_import.append(dat_usdz_import_menu)
+        for cls in classes:
+            bpy.utils.register_class(cls)
+            registered_classes.append(cls)
+
+        register_translations()
+        register_scene_properties()
+        register_enabled_custom_scripts()
+        bpy.types.TOPBAR_MT_file_export.append(dat_gltf_export_menu)
+        bpy.types.TOPBAR_MT_file_export.append(dat_fbx_export_menu)
+        bpy.types.TOPBAR_MT_file_export.append(dat_stl_export_menu)
+        bpy.types.TOPBAR_MT_file_import.append(dat_gltf_import_menu)
+        bpy.types.TOPBAR_MT_file_import.append(dat_fbx_import_menu)
+        bpy.types.TOPBAR_MT_file_import.append(dat_stl_import_menu)
+        bpy.types.TOPBAR_MT_file_import.append(dat_usdz_import_menu)
+    except Exception:
+        for cls in reversed(registered_classes):
+            try:
+                bpy.utils.unregister_class(cls)
+            except Exception:
+                pass
+        unregister_asset_previews()
+        unregister_custom_icons()
+        raise
 
 
 def unregister():
@@ -306,6 +338,7 @@ def unregister():
         "dat_scale_z",
         "dat_scalebuffer",
         "dat_activeobjectbuffer",
+        "dat_asset_icons",
     ):
         if hasattr(bpy.types.Scene, prop):
             delattr(bpy.types.Scene, prop)
@@ -317,4 +350,5 @@ def unregister():
             pass
 
     unregister_custom_icons()
+    unregister_asset_previews()
 

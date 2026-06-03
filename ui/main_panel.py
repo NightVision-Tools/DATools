@@ -6,6 +6,7 @@ from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProper
 
 from .. import dictionary
 from ..operators.custom_scripts import active_custom_scripts, draw_custom_script, script_icon
+from ..operators.assets import draw_asset_panel, get_asset_items
 from ..operators.gltf_da import draw_gltf_io_panel
 from .help_buttons import DOC_PATHS as TOOL_DOC_PATHS
 from .help_buttons import draw_doc_header as _draw_section_header
@@ -17,6 +18,7 @@ _preview_collections = {}
 PANEL_ITEMS = (
     ("BLENDER", "menu_blender", "Blender tools", DAT_LOGO_ICON),
     ("TOOLS", "menu_tools", "General operators", "TOOL_SETTINGS"),
+    ("ASSET", "menu_asset", "Asset gallery", "ASSET_MANAGER"),
     ("TEXTURE", "menu_texture", "Texture tools", "TEXTURE"),
     ("LIGHT", "menu_light", "Lighting tools", "OUTLINER_OB_LIGHT"),
     ("SCRIPT", "menu_script", "Custom scripts", "FILE_SCRIPT"),
@@ -203,57 +205,17 @@ def _draw_tab_content_split(layout, state):
 
 
 def ui_menu_options(self, context):
-    enum_items = [
-        (
-            "Blender",
-            dictionary.translate("menu_blender", context),
-            dictionary.translate("menu_blender", context),
-            "BLENDER",
-            1,
-        ),
-        (
-            "Tools",
-            dictionary.translate("menu_tools", context),
-            dictionary.translate("menu_tools", context),
-            "TOOL_SETTINGS",
-            2,
-        ),
-        (
-            "Texture",
-            dictionary.translate("menu_texture", context),
-            dictionary.translate("menu_texture", context),
-            "TEXTURE",
-            4,
-        ),
-        (
-            "Light",
-            dictionary.translate("menu_light", context),
-            dictionary.translate("menu_light", context),
-            "OUTLINER_OB_LIGHT",
-            5,
-        ),
-        (
-            "Script",
-            dictionary.translate("menu_script", context),
-            dictionary.translate("menu_script", context),
-            "FILE_SCRIPT",
-            6,
-        ),
-        (
-            "I/O",
-            dictionary.translate("menu_io", context),
-            dictionary.translate("menu_io", context),
-            "NETWORK_DRIVE",
-            8,
-        ),
-        (
-            "Settings",
-            dictionary.translate("menu_settings", context),
-            dictionary.translate("menu_settings", context),
-            "SETTINGS",
-            12,
-        ),
-    ]
+    enum_items = []
+    for index, (identifier, label_key, description, icon) in enumerate(PANEL_ITEMS):
+        enum_items.append(
+            (
+                identifier.title(),
+                dictionary.translate(label_key, context),
+                description,
+                "BLENDER" if icon == DAT_LOGO_ICON else icon,
+                2**index,
+            )
+        )
     return enum_items
 
 
@@ -348,6 +310,15 @@ class DAT_MainPanelState(bpy.types.PropertyGroup):
         name="Show Script Icons",
         description="Show custom script icons inside the Script panel",
         default=True,
+    )
+    asset_gallery_scale: FloatProperty(
+        name=dictionary.translate("asset_gallery_size_label"),
+        description=dictionary.translate("asset_gallery_size_description"),
+        default=5.0,
+        min=1.0,
+        max=10.0,
+        soft_min=2.0,
+        soft_max=8.0,
     )
     align_script_buttons: BoolProperty(
         name="Align Script Buttons",
@@ -533,11 +504,20 @@ def _draw_settings_panel(layout, context):
         text=dictionary.translate("custom_scripts_running_header", context),
         icon="FILE_SCRIPT",
         context=context,
-        doc_path=TOOL_DOC_PATHS["custom_scripts"],
+        doc_path=TOOL_DOC_PATHS["script_panel"],
     )
     script_box.prop(state, "show_script_names")
     script_box.prop(state, "show_script_icons")
     script_box.prop(state, "align_script_buttons", toggle=True)
+    asset_box = layout.box()
+    _draw_section_header(
+        asset_box,
+        text=dictionary.translate("menu_asset", context),
+        icon="ASSET_MANAGER",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["asset_settings"],
+    )
+    asset_box.prop(state, "asset_gallery_scale")
     _draw_settings_preview(layout, context)
 
 
@@ -550,6 +530,7 @@ def _draw_settings_preview(layout, context):
 
     preview_tabs = (
         ("TOOL_SETTINGS", True),
+        ("ASSET_MANAGER", False),
         ("NETWORK_DRIVE", False),
         ("SETTINGS", False),
     )
@@ -601,7 +582,7 @@ def _draw_texture_panel(layout, context):
         text="Mapping Settings",
         icon="FORCE_TEXTURE",
         context=context,
-        doc_path=TOOL_DOC_PATHS["map_it"],
+        doc_path=TOOL_DOC_PATHS["map_it_values"],
     )
     mapped_count = _get_selected_map_it_material_count(context)
     if mapped_count:
@@ -655,7 +636,7 @@ def _draw_light_panel(layout, context):
         text=dictionary.translate("light_add_label", context),
         icon="OUTLINER_OB_LIGHT",
         context=context,
-        doc_path=TOOL_DOC_PATHS["light_tools"],
+        doc_path=TOOL_DOC_PATHS["light_add"],
     )
 
     row = box.row(align=True)
@@ -702,7 +683,7 @@ def _draw_light_panel(layout, context):
         text=dictionary.translate("light_selected_label", context),
         icon="OUTLINER_OB_LIGHT",
         context=context,
-        doc_path=TOOL_DOC_PATHS["light_tools"],
+        doc_path=TOOL_DOC_PATHS["light_edit"],
     )
     box.prop(light, "type")
     box.prop(light, "color")
@@ -730,7 +711,7 @@ def _draw_script_panel(layout, context):
         text=dictionary.translate("custom_scripts_running_header", context),
         icon="FILE_SCRIPT",
         context=context,
-        doc_path=TOOL_DOC_PATHS["custom_scripts"],
+        doc_path=TOOL_DOC_PATHS["script_panel"],
     )
 
     scripts = active_custom_scripts(context)
@@ -755,6 +736,8 @@ def _draw_panel_content(layout, context, identifier):
 
     if identifier == "TOOLS":
         _draw_tools_panel(col, context)
+    elif identifier == "ASSET":
+        draw_asset_panel(col, context)
     elif identifier == "SETTINGS":
         _draw_settings_panel(col, context)
     elif identifier == "BLENDER":
@@ -999,4 +982,9 @@ def register_scene_properties():
     bpy.types.Scene.dat_activeobjectbuffer = bpy.props.PointerProperty(
         name=dictionary.translate("dat_activeobjectbuffer_label"),
         type=bpy.types.Object,
+    )
+    bpy.types.Scene.dat_asset_icons = bpy.props.EnumProperty(
+        name=dictionary.translate("asset_icons_label"),
+        description=dictionary.translate("asset_icons_description"),
+        items=get_asset_items,
     )

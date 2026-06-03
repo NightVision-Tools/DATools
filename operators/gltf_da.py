@@ -916,7 +916,12 @@ class DAT_OP_GltfExport(Operator):
         prefs = _addon_preferences(context)
 
         box = layout.box()
-        draw_doc_header(box, text=_t("gltf_export_options_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
+        draw_doc_header(
+            box,
+            text=_t("gltf_export_options_header", context),
+            context=context,
+            doc_path=DOC_PATHS["gltf_export_options"],
+        )
         box.prop(self, "export_format_ui")
         box.prop(self, "export_scope")
         box.prop(self, "apply_modifiers")
@@ -925,7 +930,12 @@ class DAT_OP_GltfExport(Operator):
         box.prop(self, "unicode_policy")
 
         geo = layout.box()
-        draw_doc_header(geo, text=_t("gltf_geometry_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
+        draw_doc_header(
+            geo,
+            text=_t("gltf_geometry_header", context),
+            context=context,
+            doc_path=DOC_PATHS["gltf_geometry"],
+        )
         geo.prop(self, "triangulate_all")
         geo.prop(self, "convert_curves_to_mesh")
         geo.prop(self, "convert_text_to_mesh")
@@ -933,18 +943,33 @@ class DAT_OP_GltfExport(Operator):
         geo.prop(self, "convert_meta_to_mesh")
 
         obj_box = layout.box()
-        draw_doc_header(obj_box, text=_t("gltf_object_types_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
+        draw_doc_header(
+            obj_box,
+            text=_t("gltf_object_types_header", context),
+            context=context,
+            doc_path=DOC_PATHS["gltf_object_types"],
+        )
         obj_box.prop(self, "include_empties")
         obj_box.prop(self, "include_cameras")
         obj_box.prop(self, "lights_mode")
         obj_box.prop(self, "exclude_unsupported_lights")
 
         anim = layout.box()
-        draw_doc_header(anim, text=_t("gltf_animations_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
+        draw_doc_header(
+            anim,
+            text=_t("gltf_animations_header", context),
+            context=context,
+            doc_path=DOC_PATHS["gltf_animations"],
+        )
         anim.prop(self, "export_animations_mode")
 
         collisions = layout.box()
-        draw_doc_header(collisions, text=_t("gltf_collision_options_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
+        draw_doc_header(
+            collisions,
+            text=_t("gltf_collision_options_header", context),
+            context=context,
+            doc_path=DOC_PATHS["gltf_collision_helpers"],
+        )
         collisions.prop(self, "use_prefix_for_collisions")
         collisions.label(text=_t("gltf_prefix_status_label", context).format(prefs.gltf_collision_prefix))
         collisions.prop(self, "use_property_for_collisions")
@@ -952,7 +977,12 @@ class DAT_OP_GltfExport(Operator):
         collisions.label(text=_t("gltf_collision_key_label", context).format(COLLISION_OBJECT_KEY))
 
         profiles = layout.box()
-        draw_doc_header(profiles, text=_t("gltf_export_profile_header", context), context=context, doc_path=DOC_PATHS["io_tools"])
+        draw_doc_header(
+            profiles,
+            text=_t("gltf_export_profile_header", context),
+            context=context,
+            doc_path=DOC_PATHS["gltf_export_profiles"],
+        )
         profiles.prop(prefs, "gltf_active_profile", text=_t("gltf_active_profile_label", context))
         row = profiles.row(align=True)
         row.prop(self, "profile_save_as")
@@ -1379,7 +1409,7 @@ def draw_gltf_io_panel(layout, context):
         text=_t("gltf_collision_helpers_header", context),
         icon="MOD_PHYSICS",
         context=context,
-        doc_path=DOC_PATHS["io_tools"],
+        doc_path=DOC_PATHS["gltf_collision_helpers"],
     )
     row = collision_box.row(align=True)
     row.operator("dat.toggle_collision", text=_t("gltf_toggle_collision_label", context), icon="FILE_REFRESH").set_state = "TOGGLE"
@@ -1394,14 +1424,26 @@ def draw_gltf_io_panel(layout, context):
         text=_t("gltf_quick_actions_header", context),
         icon="NETWORK_DRIVE",
         context=context,
-        doc_path=DOC_PATHS["io_tools"],
+        doc_path=DOC_PATHS["io_panel"],
     )
-    actions_box.label(text=_t("dat_imports_header", context), icon="IMPORT")
+    draw_doc_header(
+        actions_box,
+        text=_t("dat_imports_header", context),
+        icon="IMPORT",
+        context=context,
+        doc_path=DOC_PATHS["gltf_import"],
+    )
     actions_box.operator("dat.import_gltf", text=_t("gltf_import_label", context), icon="IMPORT")
     actions_box.operator("dat.import_fbx", text=_t("fbx_import_label", context), icon="IMPORT")
     actions_box.operator("dat.import_stl", text=_t("stl_import_label", context), icon="IMPORT")
     actions_box.operator("dat.import_usdz", text=_t("usdz_import_label", context), icon="IMPORT")
-    actions_box.label(text=_t("dat_exports_header", context), icon="EXPORT")
+    draw_doc_header(
+        actions_box,
+        text=_t("dat_exports_header", context),
+        icon="EXPORT",
+        context=context,
+        doc_path=DOC_PATHS["gltf_export"],
+    )
     actions_box.operator("dat.export_gltf", text=_t("gltf_export_label", context), icon="EXPORT")
     actions_box.operator("dat.export_fbx", text=_t("fbx_export_label", context), icon="EXPORT")
     actions_box.operator("dat.export_stl", text=_t("stl_export_label", context), icon="EXPORT")
@@ -1412,7 +1454,7 @@ def draw_gltf_io_panel(layout, context):
         text=_t("gltf_export_profile_header", context),
         icon="PRESET",
         context=context,
-        doc_path=DOC_PATHS["io_tools"],
+        doc_path=DOC_PATHS["gltf_export_profiles"],
     )
     profile_box.prop(prefs, "gltf_active_profile", text=_t("gltf_active_profile_label", context))
     row = profile_box.row(align=True)
@@ -1430,7 +1472,7 @@ def draw_gltf_settings(layout, context):
         text=_t("gltf_io_header", context),
         icon="NETWORK_DRIVE",
         context=context,
-        doc_path=DOC_PATHS["io_tools"],
+        doc_path=DOC_PATHS["gltf_io_preferences"],
     )
     box.prop(prefs, "gltf_collision_prefix", text=_t("gltf_collision_prefix_label", context))
     box.prop(prefs, "gltf_active_profile", text=_t("gltf_active_profile_label", context))

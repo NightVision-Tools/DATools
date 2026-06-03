@@ -6,3 +6,4 @@ from . import shrink_it
 from . import map_it
 from . import custom_scripts
 from . import gltf_da
+from . import assets
