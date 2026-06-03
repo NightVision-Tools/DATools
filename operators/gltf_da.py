@@ -23,6 +23,7 @@ EXPORT_CONTROL_STATE = {
     "warning_message": "",
     "warning_details": "",
     "warning_nodes": [],
+    "warning_node_details": [],
 }
 EXPORT_CONTROL_WARNING_PIE_ID = "DAT_MT_export_control_warning_pie"
 SUPPORTED_EXPORT_MATERIAL_NODE_TYPES = {
@@ -33,6 +34,8 @@ SUPPORTED_EXPORT_MATERIAL_NODE_TYPES = {
     "TEX_COORD",
     "REROUTE",
     "MAPPING",
+    "DISPLACEMENT",
+    "FRAME",
 }
 PROFILE_FIELDS = (
     "export_format_ui",
@@ -102,10 +105,120 @@ def _format_name_list(names, max_items=6):
     return ", ".join(shown) + suffix
 
 
+def _node_display_name(node):
+    label = getattr(node, "label", "")
+    if label:
+        return label
+    name = getattr(node, "name", "")
+    if name:
+        return name
+    bl_label = getattr(node, "bl_label", "")
+    if bl_label:
+        return bl_label
+    return getattr(node, "type", "Node")
+
+
+def _node_parent_names(node):
+    names = []
+    parent = getattr(node, "parent", None)
+    seen = set()
+    while parent is not None:
+        try:
+            parent_id = parent.as_pointer()
+        except Exception:
+            parent_id = id(parent)
+        if parent_id in seen:
+            break
+        seen.add(parent_id)
+        names.insert(0, _node_display_name(parent))
+        parent = getattr(parent, "parent", None)
+    return names
+
+
+def _warning_node_detail(material, node, path):
+    return {
+        "material": material.name,
+        "path": " -> ".join(path),
+        "node_type": getattr(node, "type", "UNKNOWN"),
+        "node_name": _node_display_name(node),
+    }
+
+
+def _collect_invalid_material_nodes(material):
+    invalid = []
+    if material is None or not material.use_nodes or material.node_tree is None:
+        return invalid
+
+    def walk_node_tree(node_tree, path_prefix, visited_trees):
+        for node in node_tree.nodes:
+            node_path = path_prefix + _node_parent_names(node) + [_node_display_name(node)]
+
+            if node.type not in SUPPORTED_EXPORT_MATERIAL_NODE_TYPES:
+                invalid.append((node, _warning_node_detail(material, node, node_path)))
+
+            group_tree = getattr(node, "node_tree", None)
+            if group_tree is None:
+                continue
+
+            try:
+                group_tree_id = group_tree.as_pointer()
+            except Exception:
+                group_tree_id = id(group_tree)
+            if group_tree_id in visited_trees:
+                continue
+
+            walk_node_tree(group_tree, node_path, visited_trees | {group_tree_id})
+
+    try:
+        root_tree_id = material.node_tree.as_pointer()
+    except Exception:
+        root_tree_id = id(material.node_tree)
+    walk_node_tree(material.node_tree, [material.name], {root_tree_id})
+    return invalid
+
+
+def _print_export_control_warning_nodes():
+    details = EXPORT_CONTROL_STATE.get("warning_node_details", [])
+    if not details:
+        print("[DATools] Material check: no unsupported material nodes found.")
+        return
+
+    print("[DATools] Material check: unsupported material nodes")
+    for detail in details:
+        print(
+            "[DATools] - {path} ({node_type})".format(
+                path=detail.get("path", ""),
+                node_type=detail.get("node_type", "UNKNOWN"),
+            )
+        )
+
+
+def _focus_visible_system_console():
+    if os.name != "nt":
+        return False
+
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        hwnd = kernel32.GetConsoleWindow()
+        if not hwnd or not user32.IsWindowVisible(hwnd):
+            return False
+
+        user32.ShowWindow(hwnd, 9)
+        user32.SetForegroundWindow(hwnd)
+        return True
+    except Exception:
+        return False
+
+
 def _check_material_export_problems(objects, prefix="", use_prefix=True, use_property=True):
     invalid_objects = []
     invalid_nodes = set()
     warning_nodes = []
+    warning_node_details = []
+    seen_warning_nodes = set()
 
     for obj in objects:
         if _is_collision_object(obj, prefix, use_prefix, use_property):
@@ -119,19 +232,35 @@ def _check_material_export_problems(objects, prefix="", use_prefix=True, use_pro
             if material is None or not material.use_nodes or material.node_tree is None:
                 continue
 
-            for node in material.node_tree.nodes:
-                if node.type not in SUPPORTED_EXPORT_MATERIAL_NODE_TYPES:
-                    has_error = True
-                    invalid_nodes.add(node.type.lower())
-                    warning_nodes.append(node)
+            for node, detail in _collect_invalid_material_nodes(material):
+                has_error = True
+                invalid_nodes.add(node.type.lower())
+
+                try:
+                    node_key = (material.as_pointer(), node.as_pointer(), detail["path"])
+                except Exception:
+                    node_key = (material.name, detail["path"], detail["node_type"])
+                if node_key in seen_warning_nodes:
+                    continue
+                seen_warning_nodes.add(node_key)
+                warning_nodes.append(node)
+                warning_node_details.append(detail)
 
         if has_error:
             invalid_objects.append(obj.name)
 
-    return sorted(invalid_objects), sorted(invalid_nodes), warning_nodes
+    return sorted(invalid_objects), sorted(invalid_nodes), warning_nodes, warning_node_details
 
 
-def _store_export_control_warning(operator, context, invalid_objects, invalid_nodes, warning_nodes, pending_fields=None):
+def _store_export_control_warning(
+    operator,
+    context,
+    invalid_objects,
+    invalid_nodes,
+    warning_nodes,
+    warning_node_details,
+    pending_fields=None,
+):
     fields = pending_fields or getattr(operator, "export_control_fields", PROFILE_FIELDS)
     EXPORT_CONTROL_STATE["pending_kwargs"] = {
         key: getattr(operator, key)
@@ -152,6 +281,7 @@ def _store_export_control_warning(operator, context, invalid_objects, invalid_no
         _format_name_list(invalid_nodes)
     )
     EXPORT_CONTROL_STATE["warning_nodes"] = warning_nodes
+    EXPORT_CONTROL_STATE["warning_node_details"] = warning_node_details
 
 
 def _clear_export_control_state():
@@ -161,6 +291,7 @@ def _clear_export_control_state():
     EXPORT_CONTROL_STATE["warning_message"] = ""
     EXPORT_CONTROL_STATE["warning_details"] = ""
     EXPORT_CONTROL_STATE["warning_nodes"] = []
+    EXPORT_CONTROL_STATE["warning_node_details"] = []
 
 
 def _continue_pending_export(context, reporter=None):
@@ -194,7 +325,7 @@ def _warn_for_export_materials_if_needed(operator, context, objects, use_prefix=
         return False
 
     prefs = _addon_preferences(context)
-    invalid_objects, invalid_nodes, warning_nodes = _check_material_export_problems(
+    invalid_objects, invalid_nodes, warning_nodes, warning_node_details = _check_material_export_problems(
         objects,
         prefs.gltf_collision_prefix,
         use_prefix,
@@ -203,7 +334,7 @@ def _warn_for_export_materials_if_needed(operator, context, objects, use_prefix=
     if not invalid_objects:
         return False
 
-    _store_export_control_warning(operator, context, invalid_objects, invalid_nodes, warning_nodes)
+    _store_export_control_warning(operator, context, invalid_objects, invalid_nodes, warning_nodes, warning_node_details)
     bpy.ops.dat.export_control_warning("INVOKE_DEFAULT")
     return True
 
@@ -1125,7 +1256,29 @@ class DAT_MT_ExportControlWarningPie(Menu):
             box.label(text=EXPORT_CONTROL_STATE["warning_details"], icon="INFO")
         box.label(text=_t("export_control_continue_hint", context), icon="INFO")
 
-        layout.operator("wm.console_toggle", text=_t("export_control_open_console", context), icon="CONSOLE")
+        layout.operator("dat.open_warning_console", text=_t("export_control_open_console", context), icon="CONSOLE")
+
+
+class DAT_OP_OpenWarningConsole(Operator):
+    bl_idname = "dat.open_warning_console"
+    bl_label = "Open Console"
+    bl_description = "Open or focus the console and print DATools material warnings"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        _print_export_control_warning_nodes()
+
+        if _focus_visible_system_console():
+            return {"FINISHED"}
+
+        try:
+            result = bpy.ops.wm.console_toggle()
+        except Exception as exc:
+            self.report({"WARNING"}, f"Console unavailable: {exc}")
+            return {"CANCELLED"}
+
+        _focus_visible_system_console()
+        return result
 
 
 class DAT_OP_ExportControlContinue(Operator):
