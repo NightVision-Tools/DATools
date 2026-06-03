@@ -2,8 +2,8 @@
 
 bl_info = {
     "name": "DATools",
-    "author": "Tinazzi Patrick",
-    "version": (1, 10, 1),
+    "author": "Tinazzi Patrick","support": "Dallasrt",
+    "version": (1, 11, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
