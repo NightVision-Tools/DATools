@@ -24,6 +24,7 @@ PANEL_ITEMS = (
     ("SCRIPT", "menu_script", "Custom scripts", "FILE_SCRIPT"),
     ("IO", "menu_io", "Import and export", "NETWORK_DRIVE"),
     ("SETTINGS", "menu_settings", "DATools settings", "SETTINGS"),
+    ("HELP", "menu_help", "DATools help", "HELP"),
 )
 PANEL_IDS = [item[0] for item in PANEL_ITEMS]
 DEFAULT_PANEL_ID = "TOOLS"
@@ -556,6 +557,43 @@ def _draw_settings_preview(layout, context):
     sample.label(text="Scale X  1.000")
     _draw_action_button(sample, "dat.main_panel_preview_hello", text="Dummy", icon="PLAY")
 
+
+def _draw_help_panel(layout, context):
+    state = context.scene.dat_panel_state
+    layout.scale_y = state.submenu_button_scale * state.ui_text_scale
+
+    issue_box = layout.box()
+    _draw_section_header(
+        issue_box,
+        text=dictionary.translate("help_report_header", context),
+        icon="HELP",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["help_panel"],
+    )
+    issue_box.label(text=dictionary.translate("help_report_info", context), icon="INFO")
+    issue_box.label(text=dictionary.translate("help_report_details", context), icon="TEXT")
+    issue_box.operator(
+        "dat.open_issues",
+        text=dictionary.translate("help_open_issues", context),
+        icon="URL",
+    )
+
+    docs_box = layout.box()
+    _draw_section_header(
+        docs_box,
+        text=dictionary.translate("help_docs_header", context),
+        icon="QUESTION",
+        context=context,
+        doc_path=TOOL_DOC_PATHS["help_panel"],
+    )
+    docs_box.label(text=dictionary.translate("help_docs_info", context), icon="INFO")
+    docs_box.operator(
+        "dat.open_docs",
+        text=dictionary.translate("help_open_docs", context),
+        icon="URL",
+    ).path = ""
+
+
 def _draw_texture_panel(layout, context):
     state = context.scene.dat_panel_state
     layout.scale_y = state.submenu_button_scale * state.ui_text_scale
@@ -756,6 +794,8 @@ def _draw_panel_content(layout, context, identifier):
         _draw_light_panel(col, context)
     elif identifier == "SCRIPT":
         _draw_script_panel(col, context)
+    elif identifier == "HELP":
+        _draw_help_panel(col, context)
 
 
 class DAT_PT_3DV_MainPanel(bpy.types.Panel):

@@ -3,7 +3,7 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick","support": "Dallasrt",
-    "version": (1, 11, 0),
+    "version": (1, 12, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
@@ -36,7 +36,7 @@ from .ui.main_panel import (
     register_scene_properties,
     unregister_custom_icons,
 )
-from .ui.help_buttons import DAT_OT_OpenDocs, DOC_PATHS, draw_doc_header
+from .ui.help_buttons import DAT_OT_OpenDocs, DAT_OT_OpenIssues, DOC_PATHS, draw_doc_header
 from .ui.select_language import DAT_OP_SelectLanguage
 from .operators.floor_it import DAT_OP_FloorIt
 from .operators.rez_it import DAT_OP_RezIt
@@ -236,6 +236,7 @@ classes = (
     DAT_OT_CustomScriptDisplayToggle,
     DAT_OT_CustomScriptToggle,
     DAT_OT_OpenDocs,
+    DAT_OT_OpenIssues,
     DAT_OP_FloorIt,
     DAT_OP_RezIt,
     DAT_OP_ScaleIt,

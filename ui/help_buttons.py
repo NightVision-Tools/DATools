@@ -4,6 +4,7 @@ from bpy.types import Operator
 
 
 DOCS_BASE_URL = "https://1nightvision1.github.io/DATools_Doc/"
+ISSUES_URL = "https://github.com/NightVision-Tools/DATools/issues"
 DOC_PATHS = {
     "about": "About/",
     "asset_panel": "Interface/#asset-panel",
@@ -21,6 +22,7 @@ DOC_PATHS = {
     "gltf_import": "Operators/IO_Tools/#import",
     "gltf_io_preferences": "Preferences/#gltf-io",
     "gltf_object_types": "Operators/IO_Tools/#object-types",
+    "help_panel": "Interface/#help-panel",
     "installation": "Installation/",
     "interface": "Interface/#panel-sections",
     "io_panel": "Interface/#io-panel",
@@ -42,6 +44,15 @@ DOC_PATHS = {
 }
 
 
+def _open_url(operator, url):
+    if not bpy.app.online_access:
+        operator.report({"WARNING"}, "Online access is disabled in Blender preferences")
+        return {"CANCELLED"}
+
+    bpy.ops.wm.url_open(url=url)
+    return {"FINISHED"}
+
+
 class DAT_OT_OpenDocs(Operator):
     bl_idname = "dat.open_docs"
     bl_label = "Open DATools Documentation"
@@ -50,12 +61,16 @@ class DAT_OT_OpenDocs(Operator):
     path: StringProperty(default="")
 
     def execute(self, context):
-        if not bpy.app.online_access:
-            self.report({"WARNING"}, "Online access is disabled in Blender preferences")
-            return {"CANCELLED"}
+        return _open_url(self, DOCS_BASE_URL + self.path)
 
-        bpy.ops.wm.url_open(url=DOCS_BASE_URL + self.path)
-        return {"FINISHED"}
+
+class DAT_OT_OpenIssues(Operator):
+    bl_idname = "dat.open_issues"
+    bl_label = "Open DATools Issues"
+    bl_description = "Open the DATools GitHub issues page"
+
+    def execute(self, context):
+        return _open_url(self, ISSUES_URL)
 
 
 def show_help_buttons(context):
