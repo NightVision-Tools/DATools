@@ -7,7 +7,7 @@
       "id": "DATools",
       "name": "DATools",
       "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
-      "version": "1.11.0",
+      "version": "1.12.0",
       "type": "add-on",
       "maintainer": "Tinazzi Patrick, Dallasrt",
       "license": [
@@ -30,9 +30,9 @@
         "Scene",
         "UV"
       ],
-      "archive_url": "./DATools-1.11.0.zip",
-      "archive_size": 1354948,
-      "archive_hash": "sha256:1dff8d3fc1079cba9b602f718654efb20af985be9e733a24b7b28934227165b2"
+      "archive_url": "./DATools-1.12.0.zip",
+      "archive_size": 2222485,
+      "archive_hash": "sha256:63d5d372ec37f91ade6c8b257318ef7d365a053f8c7ff192bb6c23a70abea18d"
     }
   ]
 }
