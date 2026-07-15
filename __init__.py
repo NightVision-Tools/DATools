@@ -3,7 +3,7 @@
 bl_info = {
     "name": "DATools",
     "author": "Tinazzi Patrick","support": "Dallasrt",
-    "version": (1, 12, 0),
+    "version": (1, 13, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > DAT",
     "description": "A set of tools for the DungeonAlchemist™ import pipeline",
@@ -32,6 +32,8 @@ from .ui.main_panel import (
     DAT_OT_MainPanelPin,
     DAT_OT_MainPanelPreviewHello,
     DAT_OT_MainPanelSelect,
+    apply_panel_category_icon,
+    clear_panel_category_icon,
     register_custom_icons,
     register_scene_properties,
     unregister_custom_icons,
@@ -276,6 +278,7 @@ def register():
 
     try:
         register_custom_icons()
+        apply_panel_category_icon(DAT_PT_3DV_MainPanel)
         register_asset_previews()
 
         for cls in classes:
@@ -300,6 +303,7 @@ def register():
                 pass
         unregister_asset_previews()
         unregister_custom_icons()
+        clear_panel_category_icon(DAT_PT_3DV_MainPanel)
         raise
 
 
@@ -350,6 +354,7 @@ def unregister():
         except Exception:
             pass
 
+    clear_panel_category_icon(DAT_PT_3DV_MainPanel)
     unregister_custom_icons()
     unregister_asset_previews()
 

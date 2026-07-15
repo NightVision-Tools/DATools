@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "DATools"
-version = "1.12.0"
+version = "1.13.0"
 name = "DATools"
 tagline = "A set of tools for the DungeonAlchemist™ import pipeline"
 maintainer = "Tinazzi Patrick, Dallasrt"
@@ -18,7 +18,7 @@ tags = ["3D View","Import-Export","Lighting","Material","Modeling","Mesh","Objec
 blender_version_min = "4.2.0"
 # # Optional: Blender version that the extension does not support, earlier versions are supported.
 # # This can be omitted and defined later on the extensions platform if an issue is found.
-# blender_version_max = "5.1.2"
+blender_version_max = "5.2.0"
 
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html

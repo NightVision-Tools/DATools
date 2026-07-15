@@ -19,7 +19,11 @@ _valid_icon_ids = None
 
 
 def _scripts_dir():
-    user_dir = bpy.utils.extension_path_user(ADDON_PACKAGE, create=True)
+    try:
+        user_dir = bpy.utils.extension_path_user(ADDON_PACKAGE, create=True)
+    except Exception:
+        user_dir = os.path.dirname(os.path.dirname(__file__))
+
     path = os.path.join(user_dir, "custom_scripts")
     os.makedirs(path, exist_ok=True)
     return path
