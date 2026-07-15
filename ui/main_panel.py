@@ -58,6 +58,33 @@ def _get_icon_value(icon):
     return previews[icon].icon_id
 
 
+def _panel_category_icon_supported():
+    try:
+        return "bl_icon_value" in bpy.types.Panel.bl_rna.properties
+    except Exception:
+        return hasattr(bpy.types.Panel, "bl_icon_value")
+
+
+def clear_panel_category_icon(panel_cls):
+    for attr_name in ("bl_icon_value", "bl_icon"):
+        if attr_name in panel_cls.__dict__:
+            delattr(panel_cls, attr_name)
+
+
+def apply_panel_category_icon(panel_cls):
+    clear_panel_category_icon(panel_cls)
+
+    if not _panel_category_icon_supported():
+        return False
+
+    icon_value = _get_icon_value(DAT_LOGO_ICON)
+    if not icon_value:
+        return False
+
+    panel_cls.bl_icon_value = icon_value
+    return True
+
+
 def _operator_with_panel_icon(layout, operator_id, panel, **kwargs):
     icon_value = _get_icon_value(panel.icon)
     if icon_value:
