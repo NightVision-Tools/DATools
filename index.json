@@ -7,13 +7,14 @@
       "id": "DATools",
       "name": "DATools",
       "tagline": "A set of tools for the DungeonAlchemist\u2122 import pipeline",
-      "version": "1.12.0",
+      "version": "1.13.0",
       "type": "add-on",
       "maintainer": "Tinazzi Patrick, Dallasrt",
       "license": [
         "SPDX:GPL-3.0-or-later"
       ],
       "blender_version_min": "4.2.0",
+      "blender_version_max": "5.2.0",
       "website": "https://1nightvision1.github.io/DATools_Doc/",
       "permissions": {
         "network": "Open DATools online documentation from help buttons",
@@ -30,9 +31,9 @@
         "Scene",
         "UV"
       ],
-      "archive_url": "./DATools-1.12.0.zip",
-      "archive_size": 2222485,
-      "archive_hash": "sha256:63d5d372ec37f91ade6c8b257318ef7d365a053f8c7ff192bb6c23a70abea18d"
+      "archive_url": "./DATools-1.13.0.zip",
+      "archive_size": 2222686,
+      "archive_hash": "sha256:c5be2b5f351d606b1fa998e00b1e8eb2627c580fce356ad726fa837b34103e5a"
     }
   ]
 }
